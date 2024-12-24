@@ -3,214 +3,287 @@
 #include <string.h>
 #include <time.h>
 #include <ctype.h>
-#include <sys/stat.h> // ÓÃÓÚ´´½¨Ä¿Â¼
+#include <sys/stat.h> // ç”¨äºåˆ›å»ºç›®å½•
 
 #ifdef _WIN32
-#include <direct.h>   // ÓÃÓÚ´´½¨Ä¿Â¼
-#include <windows.h>  // ÓÃÓÚÄ¿Â¼²Ù×÷
+#include <direct.h>  // ç”¨äºåˆ›å»ºç›®å½•
+#include <windows.h> // ç”¨äºç›®å½•æ“ä½œ
 #define MKDIR(path) _mkdir(path)
 #else
 #include <sys/types.h>
-#include <dirent.h>    // ½öÓÃÓÚ·ÇWindowsÏµÍ³
+#include <dirent.h> // ä»…ç”¨äºéWindowsç³»ç»Ÿ
 #define MKDIR(path) mkdir(path, 0755)
 #endif
 
-// ¶¨ÒåÓÃ»§½á¹¹Ìå
-typedef struct User {
+// å®šä¹‰ç”¨æˆ·ç»“æ„ä½“
+typedef struct User
+{
     char username[50];
     char password[50];
-    char name[100];
+    char name[100]; //
     int checkin_days;
     int total_words;
     int wrong_words;
-    float correct_rate; // ÕıÈ·ÂÊ
-    char last_checkin_time[20]; // ¸ñÊ½: YYYY-MM-DD HH:MM:SS
-    int isAdmin; // ÊÇ·ñÎª¹ÜÀíÔ±
+    float correct_rate;         // æ­£ç¡®ç‡
+    char last_checkin_time[20]; // æ ¼å¼: YYYY-MM-DD HH:MM:SS
+    int isAdmin;                // æ˜¯å¦ä¸ºç®¡ç†å‘˜
     struct User *next;
 } User;
 
-// ¶¨Òåµ¥´Ê½á¹¹Ìå
-typedef struct Word {
+// å®šä¹‰å•è¯ç»“æ„ä½“
+typedef struct Word
+{
     char english[50];
     char chinese[100];
 } Word;
 
-// ¶¨ÒåÅÅĞĞ°ñÌõÄ¿½á¹¹Ìå
-typedef struct RankEntry {
+// å®šä¹‰æ’è¡Œæ¦œæ¡ç›®ç»“æ„ä½“
+typedef struct RankEntry
+{
     char name[100];
     int score;
 } RankEntry;
 
-// È«¾ÖÍ·Ö¸Õë
+// å…¨å±€å¤´æŒ‡é’ˆ
 User *head = NULL;
 
-// È«¾Öµ¥´ÊÊı×é¼°¼ÆÊı
+// å…¨å±€å•è¯æ•°ç»„åŠè®¡æ•°
 Word *wordList = NULL;
 int wordCount = 0;
 
-// º¯ÊıÉùÃ÷
+// åŠ è½½æ‰€æœ‰ç”¨æˆ·æ•°æ®
 void loadUsers();
-void loadAdmins();
-int saveAllUsers();
-int saveAllAdmins();
-int saveAll(); // Í¬Ê±±£´æÓÃ»§ºÍ¹ÜÀíÔ±
-void registerUser(int isAdmin);
-User* loginUser(int isAdmin);
-void displayUserInfo(User *user);
-void checkIn(User *user);
-void reciteWords(User *user); // ±³ËĞµ¥´Ê¹¦ÄÜ
-void dictation(User *user); // Ä¬Ğ´¹¦ÄÜ
-void freeUsers();
-void clearInputBuffer();
-void appendCheckInLog(User *user);
-int loadWords();
-void freeWords();
-void viewWrongWords();
-void viewAlreadyLearnedWords();
-void wrongWordTraining(User *user);
-void searchWord();
-void challengeMode(User *user);
-void displayRanking();
-void adminMenu(User *adminUser);
-// ĞÂÔöº¯ÊıÉùÃ÷
-void addToShengciBen(const char *english, const char *chinese);
-void viewShengciBen(); // ä¯ÀÀÉú´Ê±¾¹¦ÄÜ
 
-// ¸¨Öúº¯ÊıÉùÃ÷
+// åŠ è½½æ‰€æœ‰ç®¡ç†å‘˜æ•°æ®
+void loadAdmins();
+
+// ä¿å­˜æ‰€æœ‰ç”¨æˆ·æ•°æ®å¹¶è¿”å›æ“ä½œç»“æœï¼ˆæˆåŠŸ/å¤±è´¥ï¼‰
+int saveAllUsers();
+
+// ä¿å­˜æ‰€æœ‰ç®¡ç†å‘˜æ•°æ®å¹¶è¿”å›æ“ä½œç»“æœï¼ˆæˆåŠŸ/å¤±è´¥ï¼‰
+int saveAllAdmins();
+
+// åŒæ—¶ä¿å­˜æ‰€æœ‰ç”¨æˆ·å’Œç®¡ç†å‘˜æ•°æ®ï¼Œå¹¶è¿”å›æ“ä½œç»“æœï¼ˆæˆåŠŸ/å¤±è´¥ï¼‰
+int saveAll();
+
+// æ³¨å†Œç”¨æˆ·ï¼ˆå‚æ•° isAdmin æŒ‡ç¤ºæ˜¯å¦ä¸ºç®¡ç†å‘˜ï¼‰
+void registerUser(int isAdmin);
+
+// ç”¨æˆ·ç™»å½•ï¼ˆå‚æ•° isAdmin æŒ‡ç¤ºæ˜¯å¦ä¸ºç®¡ç†å‘˜ï¼‰
+User *loginUser(int isAdmin);
+
+// æ˜¾ç¤ºç”¨æˆ·ä¿¡æ¯
+void displayUserInfo(User *user);
+
+// ç”¨æˆ·ç­¾åˆ°ï¼ˆè®°å½•ç­¾åˆ°æƒ…å†µï¼‰
+void checkIn(User *user);
+
+// èƒŒè¯µå•è¯åŠŸèƒ½
+void reciteWords(User *user);
+
+// é»˜å†™å•è¯åŠŸèƒ½
+void dictation(User *user);
+
+// é‡Šæ”¾æ‰€æœ‰ç”¨æˆ·æ•°æ®å ç”¨çš„å†…å­˜
+void freeUsers();
+
+// æ¸…é™¤è¾“å…¥ç¼“å†²åŒºï¼ˆé¿å…ä¸Šä¸€è½®è¾“å…¥æ®‹ç•™ï¼‰
+void clearInputBuffer();
+
+// ä¸ºç”¨æˆ·æ·»åŠ ç­¾åˆ°æ—¥å¿—
+void appendCheckInLog(User *user);
+
+// åŠ è½½å•è¯æ•°æ®
+int loadWords();
+
+// é‡Šæ”¾æ‰€æœ‰å•è¯æ•°æ®å ç”¨çš„å†…å­˜
+void freeWords();
+
+// æŸ¥çœ‹é”™é¢˜
+void viewWrongWords();
+
+// æŸ¥çœ‹å·²å­¦ä¼šçš„å•è¯
+void viewAlreadyLearnedWords();
+
+// å¯¹é”™é¢˜è¿›è¡Œè®­ç»ƒï¼ˆç”¨æˆ·å¯¹é”™é¢˜è¿›è¡Œå¤ä¹ ï¼‰
+void wrongWordTraining(User *user);
+
+// æŸ¥æ‰¾æŸä¸ªå•è¯çš„ç›¸å…³ä¿¡æ¯
+void searchWord();
+
+// æŒ‘æˆ˜æ¨¡å¼ï¼ˆå¯èƒ½æ˜¯ä¸€äº›é«˜çº§æŒ‘æˆ˜åŠŸèƒ½ï¼Œæä¾›ç»™ç”¨æˆ·çš„äº’åŠ¨ä½“éªŒï¼‰
+void challengeMode(User *user);
+
+// æ˜¾ç¤ºæ’è¡Œæ¦œï¼ˆå±•ç¤ºæ‰€æœ‰ç”¨æˆ·çš„æ’åï¼‰
+void displayRanking();
+
+// ç®¡ç†å‘˜èœå•ï¼ˆç®¡ç†å‘˜ç™»å½•åè¿›å…¥çš„ç®¡ç†ç•Œé¢ï¼‰
+void adminMenu(User *adminUser);
+
+// ç”Ÿè¯æœ¬
+void addToShengciBen(const char *english, const char *chinese); // å°†å•è¯åŠ å…¥ç”Ÿè¯æœ¬
+void viewShengciBen();                                          // æµè§ˆç”Ÿè¯æœ¬åŠŸèƒ½
+
+// è¾…åŠ©å‡½æ•°å£°æ˜
 int compareRankEntries(const void *a, const void *b);
 void trimNewline(char *str);
 
-// ÎÄ¼ş¹ÜÀí¹¦ÄÜ
-void browseUsers();
-void deleteUser(); // É¾³ıÓÃ»§
+// æ–‡ä»¶ç®¡ç†åŠŸèƒ½
+void browseUsers(); // æµè§ˆæ‰€æœ‰ç”¨æˆ·
+void deleteUser();  // åˆ é™¤ç”¨æˆ·
 
-// ÓÃÓÚÌâ¿â¹ÜÀí
+// ç®¡ç†é¢˜åº“ï¼ˆç®¡ç†æ•´ä¸ªè¯åº“ç³»ç»Ÿçš„åŠŸèƒ½å…¥å£ï¼‰
 void manageWordLibraries();
+
+// åˆ—å‡ºæ‰€æœ‰ç°æœ‰çš„é¢˜åº“
 void listWordLibraries();
+
+// æ·»åŠ æ–°çš„é¢˜åº“
 void addWordLibrary();
+
+// åˆ é™¤ç°æœ‰çš„é¢˜åº“
 void deleteWordLibrary();
+
+// ç®¡ç†å•ä¸ªé¢˜åº“ï¼ˆè¿›å…¥æŸä¸ªå…·ä½“è¯åº“çš„ç®¡ç†ç•Œé¢ï¼Œè¿›è¡Œå¢åˆ æ”¹æŸ¥æ“ä½œï¼‰
 void manageSingleWordLibrary();
 
-// ³ÌĞòÈë¿Ú
-
-int main() {
+// ç¨‹åºå…¥å£
+int main()
+{
     int choice;
     User *currentUser = NULL;
-    srand(time(NULL)); // ³õÊ¼»¯Ëæ»úÊıÖÖ×Ó
+    srand(time(NULL)); // åˆå§‹åŒ–éšæœºæ•°ç§å­
 
-    // ´´½¨Ìâ¿âÄ¿Â¼Èç¹û²»´æÔÚ
+    // åˆ›å»ºé¢˜åº“ç›®å½•å¦‚æœä¸å­˜åœ¨
     struct stat st = {0};
-    if (stat("word_libraries", &st) == -1) {
-        if (MKDIR("word_libraries") != 0) {
-            perror("ÎŞ·¨´´½¨ word_libraries Ä¿Â¼");
+    if (stat("word_libraries", &st) == -1)
+    {
+        if (MKDIR("word_libraries") != 0)
+        {
+            perror("æ— æ³•åˆ›å»º word_libraries ç›®å½•");
             return 1;
         }
     }
 
-    loadUsers();    // ¼ÓÔØÆÕÍ¨ÓÃ»§
-    loadAdmins();   // ¼ÓÔØ¹ÜÀíÔ±
+    loadUsers();  // åŠ è½½æ™®é€šç”¨æˆ·
+    loadAdmins(); // åŠ è½½ç®¡ç†å‘˜
 
-    // ¼ÓÔØµ¥´Ê
-    if (loadWords() != 0) {
-        printf("¼ÓÔØµ¥´ÊÊ§°Ü£¬ÇëÈ·±£ÓĞÓĞĞ§µÄ´Ê¿âÎÄ¼ş 'word_libraries\\cet.txt' ´æÔÚÓÚ word_libraries Ä¿Â¼ÖĞ¡£\n");
+    // åŠ è½½å•è¯
+    if (loadWords() != 0)
+    {
+        printf("åŠ è½½å•è¯å¤±è´¥ï¼Œè¯·ç¡®ä¿æœ‰æœ‰æ•ˆçš„è¯åº“æ–‡ä»¶ 'word_libraries\\cet.txt' å­˜åœ¨äº word_libraries ç›®å½•ä¸­ã€‚\n");
     }
 
-    while (1) {
-        if (currentUser == NULL) {
-            printf("\n=== Ö÷½çÃæ ===\n");
-            printf("1. ×¢²áĞÂÓÃ»§\n");
-            printf("2. ÓÃ»§µÇÂ¼\n");
-            printf("3. ºóÌ¨¹ÜÀí\n");
-            printf("4. ÍË³ö\n");
-            printf("ÇëÊäÈëÑ¡Ôñ: ");
+    while (1)
+    {
+        if (currentUser == NULL)
+        {
+            printf("\n=== ä¸»ç•Œé¢ ===\n");
+            printf("1. æ³¨å†Œæ–°ç”¨æˆ·\n");
+            printf("2. ç”¨æˆ·ç™»å½•\n");
+            printf("3. åå°ç®¡ç†\n");
+            printf("4. é€€å‡º\n");
+            printf("è¯·è¾“å…¥é€‰æ‹©: ");
 
-            if (scanf("%d", &choice) != 1) {
+            if (scanf("%d", &choice) != 1)
+            {
                 clearInputBuffer();
-                printf("ÎŞĞ§µÄÊäÈë£¬ÇëÊäÈëÊı×Ö¡£\n");
+                printf("æ— æ•ˆçš„è¾“å…¥ï¼Œè¯·è¾“å…¥æ•°å­—ã€‚\n");
                 continue;
             }
-            clearInputBuffer(); // Çå³ıÊäÈë»º³åÇø
+            clearInputBuffer(); // æ¸…é™¤è¾“å…¥ç¼“å†²åŒº
 
-            switch (choice) {
+            switch (choice)
+            {
             case 1:
-                registerUser(0); // ÆÕÍ¨ÓÃ»§×¢²á
+                registerUser(0); // æ™®é€šç”¨æˆ·æ³¨å†Œ
                 break;
             case 2:
-                currentUser = loginUser(0); // ÆÕÍ¨ÓÃ»§µÇÂ¼
+                currentUser = loginUser(0); // æ™®é€šç”¨æˆ·ç™»å½•
                 break;
-            case 3: {
-                // ºóÌ¨¹ÜÀí²Ëµ¥
-                printf("\n=== ºóÌ¨¹ÜÀí ===\n");
-                printf("1. ¹ÜÀíÔ±×¢²á\n");
-                printf("2. ¹ÜÀíÔ±µÇÂ¼\n");
-                printf("3. ·µ»ØÖ÷²Ëµ¥\n");
-                printf("ÇëÊäÈëÑ¡Ôñ: ");
+            case 3:
+            {
+                // åå°ç®¡ç†èœå•
+                printf("\n=== åå°ç®¡ç† ===\n");
+                printf("1. ç®¡ç†å‘˜æ³¨å†Œ\n");
+                printf("2. ç®¡ç†å‘˜ç™»å½•\n");
+                printf("3. è¿”å›ä¸»èœå•\n");
+                printf("è¯·è¾“å…¥é€‰æ‹©: ");
                 int adminChoice;
-                if (scanf("%d", &adminChoice) != 1) {
+                if (scanf("%d", &adminChoice) != 1)
+                {
                     clearInputBuffer();
-                    printf("ÎŞĞ§µÄÊäÈë£¬ÇëÊäÈëÊı×Ö¡£\n");
+                    printf("æ— æ•ˆçš„è¾“å…¥ï¼Œè¯·è¾“å…¥æ•°å­—ã€‚\n");
                     continue;
                 }
-                clearInputBuffer(); // Çå³ıÊäÈë»º³åÇø
-                switch (adminChoice) {
+                clearInputBuffer(); // æ¸…é™¤è¾“å…¥ç¼“å†²åŒº
+                switch (adminChoice)
+                {
                 case 1:
-                    registerUser(1); // ¹ÜÀíÔ±×¢²á
+                    registerUser(1); // ç®¡ç†å‘˜æ³¨å†Œ
                     break;
-                case 2: {
-                    User *adminUser = loginUser(1); // ¹ÜÀíÔ±µÇÂ¼
-                    if (adminUser != NULL && adminUser->isAdmin) {
+                case 2:
+                {
+                    User *adminUser = loginUser(1); // ç®¡ç†å‘˜ç™»å½•
+                    if (adminUser != NULL && adminUser->isAdmin)
+                    {
                         adminMenu(adminUser);
-                        currentUser = NULL; // ÍË³ö¹ÜÀíÔ±²Ëµ¥ºóµÇ³ö
+                        currentUser = NULL; // é€€å‡ºç®¡ç†å‘˜èœå•åç™»å‡º
                     }
                     break;
                 }
                 case 3:
-                    // ·µ»ØÖ÷²Ëµ¥
+                    // è¿”å›ä¸»èœå•
                     break;
                 default:
-                    printf("ÎŞĞ§µÄÑ¡Ôñ£¬ÇëÖØĞÂÊäÈë¡£\n");
+                    printf("æ— æ•ˆçš„é€‰æ‹©ï¼Œè¯·é‡æ–°è¾“å…¥ã€‚\n");
                 }
                 break;
             }
             case 4:
-                printf("ÍË³ö³ÌĞò¡£\n");
+                printf("é€€å‡ºç¨‹åºã€‚\n");
                 freeUsers();
                 freeWords();
                 exit(0);
             default:
-                printf("ÎŞĞ§µÄÑ¡Ôñ£¬ÇëÖØĞÂÊäÈë¡£\n");
+                printf("æ— æ•ˆçš„é€‰æ‹©ï¼Œè¯·é‡æ–°è¾“å…¥ã€‚\n");
             }
-        } else {
-            if (currentUser->isAdmin) {
-                // ¹ÜÀíÔ±ÒÑ¾­ÔÚ adminMenu ÖĞ´¦Àí£¬ÎŞĞè¶îÍâ´¦Àí
+        }
+        else
+        {
+            if (currentUser->isAdmin)
+            {
+                // ç®¡ç†å‘˜å·²ç»åœ¨ adminMenu ä¸­å¤„ç†ï¼Œæ— éœ€é¢å¤–å¤„ç†
                 currentUser = NULL;
                 continue;
             }
 
-            // ÆÕÍ¨ÓÃ»§²Ëµ¥
-            printf("\n=== ÓÃ»§²Ëµ¥ ===\n");
-            printf("1. ÏÔÊ¾¸öÈËĞÅÏ¢\n");
-            printf("2. ´ò¿¨\n");
-            printf("3. ±³ËĞµ¥´Ê\n");
-            printf("4. ´íÌâ±¾\n");
-            printf("5. ²é¿´ÒÑÑ§¹ıµÄµ¥´Ê\n");
-            printf("6. ´íÌâ¸´Ï°\n");
-            printf("7. ËÑË÷µ¥´Ê\n");
-            printf("8. È¤Î¶ÌôÕ½\n");
-            printf("9. ÅÅĞĞ°ñ\n");
-            printf("10. Éú´Ê±¾\n"); 
-            printf("11. ·µ»ØÖ÷½çÃæ\n");
-            printf("12. ÍË³ö³ÌĞò\n");
-            printf("ÇëÊäÈëÑ¡Ôñ: ");
+            // æ™®é€šç”¨æˆ·èœå•
+            printf("\n=== ç”¨æˆ·èœå• ===\n");
+            printf("1. æ˜¾ç¤ºä¸ªäººä¿¡æ¯\n");
+            printf("2. æ‰“å¡\n");
+            printf("3. èƒŒè¯µå•è¯\n");
+            printf("4. é”™é¢˜æœ¬\n");
+            printf("5. æŸ¥çœ‹å·²å­¦è¿‡çš„å•è¯\n");
+            printf("6. é”™é¢˜å¤ä¹ \n");
+            printf("7. æœç´¢å•è¯\n");
+            printf("8. è¶£å‘³æŒ‘æˆ˜\n");
+            printf("9. æ’è¡Œæ¦œ\n");
+            printf("10. ç”Ÿè¯æœ¬\n");
+            printf("11. è¿”å›ä¸»ç•Œé¢\n");
+            printf("12. é€€å‡ºç¨‹åº\n");
+            printf("è¯·è¾“å…¥é€‰æ‹©: ");
 
-            if (scanf("%d", &choice) != 1) {
+            if (scanf("%d", &choice) != 1)
+            {
                 clearInputBuffer();
-                printf("ÎŞĞ§µÄÊäÈë£¬ÇëÊäÈëÊı×Ö¡£\n");
+                printf("æ— æ•ˆçš„è¾“å…¥ï¼Œè¯·è¾“å…¥æ•°å­—ã€‚\n");
                 continue;
             }
-            clearInputBuffer(); // Çå³ıÊäÈë»º³åÇø
+            clearInputBuffer(); // æ¸…é™¤è¾“å…¥ç¼“å†²åŒº
 
-            switch (choice) {
+            switch (choice)
+            {
             case 1:
                 displayUserInfo(currentUser);
                 break;
@@ -239,19 +312,19 @@ int main() {
                 displayRanking();
                 break;
             case 10:
-                viewShengciBen(); // µ÷ÓÃä¯ÀÀÉú´Ê±¾¹¦ÄÜ
+                viewShengciBen(); // è°ƒç”¨æµè§ˆç”Ÿè¯æœ¬åŠŸèƒ½
                 break;
             case 11:
-                printf("µÇ³ö³É¹¦¡£\n");
+                printf("ç™»å‡ºæˆåŠŸã€‚\n");
                 currentUser = NULL;
                 break;
             case 12:
-                printf("ÍË³ö³ÌĞò¡£\n");
+                printf("é€€å‡ºç¨‹åºã€‚\n");
                 freeUsers();
                 freeWords();
                 exit(0);
             default:
-                printf("ÎŞĞ§µÄÑ¡Ôñ£¬ÇëÖØĞÂÊäÈë¡£\n");
+                printf("æ— æ•ˆçš„é€‰æ‹©ï¼Œè¯·é‡æ–°è¾“å…¥ã€‚\n");
             }
         }
     }
@@ -260,21 +333,21 @@ int main() {
 }
 
 
-// Çå³ıÊäÈë»º³åÇø
+// æ¸…é™¤è¾“å…¥ç¼“å†²åŒº
 void clearInputBuffer() {
     while (getchar() != '\n');
 }
 
-// È¥³ı×Ö·û´®Ä©Î²µÄ»»ĞĞ·û
+// å»é™¤å­—ç¬¦ä¸²æœ«å°¾çš„æ¢è¡Œç¬¦
 void trimNewline(char *str) {
     str[strcspn(str, "\n")] = 0;
 }
 
-// ´ÓÎÄ¼ş¼ÓÔØÆÕÍ¨ÓÃ»§µ½Á´±í
+// ä»æ–‡ä»¶åŠ è½½æ™®é€šç”¨æˆ·åˆ°é“¾è¡¨
 void loadUsers() {
     FILE *file = fopen("users.txt", "r");
     if (file == NULL) {
-        // Èç¹ûÎÄ¼ş²»´æÔÚ£¬¿ÉÄÜÊÇµÚÒ»´ÎÔËĞĞ£¬²»ĞèÒª´¦Àí
+        // å¦‚æœæ–‡ä»¶ä¸å­˜åœ¨ï¼Œå¯èƒ½æ˜¯ç¬¬ä¸€æ¬¡è¿è¡Œï¼Œä¸éœ€è¦å¤„ç†
         return;
     }
 
@@ -282,14 +355,14 @@ void loadUsers() {
     while (fgets(line, sizeof(line), file)) {
         User *newUser = (User *)malloc(sizeof(User));
         if (newUser == NULL) {
-            perror("ÄÚ´æ·ÖÅäÊ§°Ü");
+            perror("å†…å­˜åˆ†é…å¤±è´¥");
             fclose(file);
             return;
         }
 
         trimNewline(line);
 
-        // Ê¹ÓÃ¶ººÅ·Ö¸ô×Ö¶Î
+        // ä½¿ç”¨é€—å·åˆ†éš”å­—æ®µ
         char *token = strtok(line, ",");
         if (token != NULL) {
             strcpy(newUser->username, token);
@@ -330,10 +403,10 @@ void loadUsers() {
         if (token != NULL) {
             strcpy(newUser->last_checkin_time, token);
         } else {
-            strcpy(newUser->last_checkin_time, "Î´´ò¿¨");
+            strcpy(newUser->last_checkin_time, "æœªæ‰“å¡");
         }
 
-        // ³¢ÊÔ¶ÁÈ¡ correct_rate£¬Èç¹û²»´æÔÚÔò³õÊ¼»¯Îª 0.0
+        // å°è¯•è¯»å– correct_rateï¼Œå¦‚æœä¸å­˜åœ¨åˆ™åˆå§‹åŒ–ä¸º 0.0
         token = strtok(NULL, ",");
         if (token != NULL) {
             newUser->correct_rate = atof(token);
@@ -341,7 +414,7 @@ void loadUsers() {
             newUser->correct_rate = 0.0f;
         }
 
-        newUser->isAdmin = 0; // ÆÕÍ¨ÓÃ»§
+        newUser->isAdmin = 0; // æ™®é€šç”¨æˆ·
 
         newUser->next = head;
         head = newUser;
@@ -350,11 +423,11 @@ void loadUsers() {
     fclose(file);
 }
 
-// ´ÓÎÄ¼ş¼ÓÔØ¹ÜÀíÔ±µ½Á´±í
+// ä»æ–‡ä»¶åŠ è½½ç®¡ç†å‘˜åˆ°é“¾è¡¨
 void loadAdmins() {
     FILE *file = fopen("monitor.txt", "r");
     if (file == NULL) {
-        // Èç¹ûÎÄ¼ş²»´æÔÚ£¬¿ÉÄÜÊÇµÚÒ»´ÎÔËĞĞ£¬²»ĞèÒª´¦Àí
+        // å¦‚æœæ–‡ä»¶ä¸å­˜åœ¨ï¼Œå¯èƒ½æ˜¯ç¬¬ä¸€æ¬¡è¿è¡Œï¼Œä¸éœ€è¦å¤„ç†
         return;
     }
 
@@ -362,14 +435,14 @@ void loadAdmins() {
     while (fgets(line, sizeof(line), file)) {
         User *newUser = (User *)malloc(sizeof(User));
         if (newUser == NULL) {
-            perror("ÄÚ´æ·ÖÅäÊ§°Ü");
+            perror("å†…å­˜åˆ†é…å¤±è´¥");
             fclose(file);
             return;
         }
 
         trimNewline(line);
 
-        // Ê¹ÓÃ¶ººÅ·Ö¸ô×Ö¶Î
+        // ä½¿ç”¨é€—å·åˆ†éš”å­—æ®µ
         char *token = strtok(line, ",");
         if (token != NULL) {
             strcpy(newUser->username, token);
@@ -410,10 +483,10 @@ void loadAdmins() {
         if (token != NULL) {
             strcpy(newUser->last_checkin_time, token);
         } else {
-            strcpy(newUser->last_checkin_time, "Î´´ò¿¨");
+            strcpy(newUser->last_checkin_time, "æœªæ‰“å¡");
         }
 
-        // ³¢ÊÔ¶ÁÈ¡ correct_rate£¬Èç¹û²»´æÔÚÔò³õÊ¼»¯Îª 0.0
+        // å°è¯•è¯»å– correct_rateï¼Œå¦‚æœä¸å­˜åœ¨åˆ™åˆå§‹åŒ–ä¸º 0.0
         token = strtok(NULL, ",");
         if (token != NULL) {
             newUser->correct_rate = atof(token);
@@ -421,7 +494,7 @@ void loadAdmins() {
             newUser->correct_rate = 0.0f;
         }
 
-        newUser->isAdmin = 1; // ¹ÜÀíÔ±
+        newUser->isAdmin = 1; // ç®¡ç†å‘˜
 
         newUser->next = head;
         head = newUser;
@@ -430,17 +503,17 @@ void loadAdmins() {
     fclose(file);
 }
 
-// ½«ËùÓĞÆÕÍ¨ÓÃ»§±£´æµ½ users.txt
+// å°†æ‰€æœ‰æ™®é€šç”¨æˆ·ä¿å­˜åˆ° users.txt
 int saveAllUsers() {
     FILE *file = fopen("users.txt", "w");
     if (file == NULL) {
-        perror("ÎŞ·¨´ò¿ª users.txt ÎÄ¼ş½øĞĞ±£´æ");
+        perror("æ— æ³•æ‰“å¼€ users.txt æ–‡ä»¶è¿›è¡Œä¿å­˜");
         return -1;
     }
 
     User *current = head;
     while (current != NULL) {
-        if (current->isAdmin == 0) { // ½ö±£´æÆÕÍ¨ÓÃ»§
+        if (current->isAdmin == 0) { // ä»…ä¿å­˜æ™®é€šç”¨æˆ·
             fprintf(file, "%s,%s,%s,%d,%d,%d,%.2f,%s\n",
                 current->username,
                 current->password,
@@ -458,17 +531,17 @@ int saveAllUsers() {
     return 0;
 }
 
-// ½«ËùÓĞ¹ÜÀíÔ±±£´æµ½ monitor.txt
+// å°†æ‰€æœ‰ç®¡ç†å‘˜ä¿å­˜åˆ° monitor.txt
 int saveAllAdmins() {
     FILE *file = fopen("monitor.txt", "w");
     if (file == NULL) {
-        perror("ÎŞ·¨´ò¿ª monitor.txt ÎÄ¼ş½øĞĞ±£´æ");
+        perror("æ— æ³•æ‰“å¼€ monitor.txt æ–‡ä»¶è¿›è¡Œä¿å­˜");
         return -1;
     }
 
     User *current = head;
     while (current != NULL) {
-        if (current->isAdmin == 1) { // ½ö±£´æ¹ÜÀíÔ±
+        if (current->isAdmin == 1) { // ä»…ä¿å­˜ç®¡ç†å‘˜
             fprintf(file, "%s,%s,%s,%d,%d,%d,%.2f,%s\n",
                 current->username,
                 current->password,
@@ -486,7 +559,7 @@ int saveAllAdmins() {
     return 0;
 }
 
-// Í¬Ê±±£´æËùÓĞÓÃ»§ºÍ¹ÜÀíÔ±
+// åŒæ—¶ä¿å­˜æ‰€æœ‰ç”¨æˆ·å’Œç®¡ç†å‘˜
 int saveAll() {
     if (saveAllUsers() != 0) {
         return -1;
@@ -497,107 +570,107 @@ int saveAll() {
     return 0;
 }
 
-// ×¢²áĞÂÓÃ»§»ò¹ÜÀíÔ±
+// æ³¨å†Œæ–°ç”¨æˆ·æˆ–ç®¡ç†å‘˜
 void registerUser(int isAdmin) {
     User *newUser = (User *)malloc(sizeof(User));
     if (newUser == NULL) {
-        perror("ÄÚ´æ·ÖÅäÊ§°Ü");
+        perror("å†…å­˜åˆ†é…å¤±è´¥");
         return;
     }
 
-    // ²»ĞèÒªÇå³ıÊäÈë»º³åÇø£¬ÒòÎªµ÷ÓÃº¯ÊıÇ°ÒÑ¾­Çå³ı
+    // ä¸éœ€è¦æ¸…é™¤è¾“å…¥ç¼“å†²åŒºï¼Œå› ä¸ºè°ƒç”¨å‡½æ•°å‰å·²ç»æ¸…é™¤
 
     if (isAdmin) {
-        printf("\n=== ¹ÜÀíÔ±×¢²á ===\n");
+        printf("\n=== ç®¡ç†å‘˜æ³¨å†Œ ===\n");
     } else {
-        printf("\n=== ÓÃ»§×¢²á ===\n");
+        printf("\n=== ç”¨æˆ·æ³¨å†Œ ===\n");
     }
 
-    // ÊäÈëÓÃ»§Ãû
-    printf("ÇëÊäÈëÓÃ»§Ãû: ");
+    // è¾“å…¥ç”¨æˆ·å
+    printf("è¯·è¾“å…¥ç”¨æˆ·å: ");
     fgets(newUser->username, sizeof(newUser->username), stdin);
     trimNewline(newUser->username);
 
-    // ¼ì²éÓÃ»§ÃûÊÇ·ñÒÑ´æÔÚ
+    // æ£€æŸ¥ç”¨æˆ·åæ˜¯å¦å·²å­˜åœ¨
     User *current = head;
     while (current != NULL) {
         if (strcmp(current->username, newUser->username) == 0) {
-            printf("ÓÃ»§ÃûÒÑ´æÔÚ£¬ÇëÑ¡ÔñÆäËûÓÃ»§Ãû¡£\n");
+            printf("ç”¨æˆ·åå·²å­˜åœ¨ï¼Œè¯·é€‰æ‹©å…¶ä»–ç”¨æˆ·åã€‚\n");
             free(newUser);
             return;
         }
         current = current->next;
     }
 
-    // ÊäÈëÃÜÂë
-    printf("ÇëÊäÈëÃÜÂë: ");
+    // è¾“å…¥å¯†ç 
+    printf("è¯·è¾“å…¥å¯†ç : ");
     fgets(newUser->password, sizeof(newUser->password), stdin);
     trimNewline(newUser->password);
 
-    // ÊäÈëĞÕÃû
-    printf("ÇëÊäÈëĞÕÃû: ");
+    // è¾“å…¥å§“å
+    printf("è¯·è¾“å…¥å§“å: ");
     fgets(newUser->name, sizeof(newUser->name), stdin);
     trimNewline(newUser->name);
 
-    // ³õÊ¼»¯ĞÂÓÃ»§µÄÆäËû×Ö¶Î
+    // åˆå§‹åŒ–æ–°ç”¨æˆ·çš„å…¶ä»–å­—æ®µ
     newUser->checkin_days = 0;
     newUser->total_words = 0;
     newUser->wrong_words = 0;
-    newUser->correct_rate = 0.0f; // ³õÊ¼»¯ÕıÈ·ÂÊ
-    strcpy(newUser->last_checkin_time, "Î´´ò¿¨");
+    newUser->correct_rate = 0.0f; // åˆå§‹åŒ–æ­£ç¡®ç‡
+    strcpy(newUser->last_checkin_time, "æœªæ‰“å¡");
     newUser->isAdmin = isAdmin;
 
-    // Ìí¼Óµ½Á´±íÍ·²¿
+    // æ·»åŠ åˆ°é“¾è¡¨å¤´éƒ¨
     newUser->next = head;
     head = newUser;
 
-    // ±£´æÓÃ»§µ½ÏàÓ¦µÄÎÄ¼ş
+    // ä¿å­˜ç”¨æˆ·åˆ°ç›¸åº”çš„æ–‡ä»¶
     if (isAdmin) {
         if (saveAllAdmins() != 0) {
-            printf("×¢²áÊ§°Ü£¬ÎŞ·¨±£´æ¹ÜÀíÔ±Êı¾İ¡£\n");
+            printf("æ³¨å†Œå¤±è´¥ï¼Œæ— æ³•ä¿å­˜ç®¡ç†å‘˜æ•°æ®ã€‚\n");
             return;
         }
-        printf("¹ÜÀíÔ±×¢²á³É¹¦£¡\n");
+        printf("ç®¡ç†å‘˜æ³¨å†ŒæˆåŠŸï¼\n");
     } else {
         if (saveAllUsers() != 0) {
-            printf("×¢²áÊ§°Ü£¬ÎŞ·¨±£´æÓÃ»§Êı¾İ¡£\n");
+            printf("æ³¨å†Œå¤±è´¥ï¼Œæ— æ³•ä¿å­˜ç”¨æˆ·æ•°æ®ã€‚\n");
             return;
         }
-        printf("×¢²á³É¹¦£¡\n");
+        printf("æ³¨å†ŒæˆåŠŸï¼\n");
     }
 }
 
-// µÇÂ¼¹¦ÄÜ
+// ç™»å½•åŠŸèƒ½
 User* loginUser(int isAdmin) {
     char username[50];
     char password[50];
 
     if (isAdmin) {
-        printf("\n=== ¹ÜÀíÔ±µÇÂ¼ ===\n");
+        printf("\n=== ç®¡ç†å‘˜ç™»å½• ===\n");
     } else {
-        printf("\n=== ÓÃ»§µÇÂ¼ ===\n");
+        printf("\n=== ç”¨æˆ·ç™»å½• ===\n");
     }
 
-    // ÊäÈëÓÃ»§Ãû
-    printf("ÇëÊäÈëÓÃ»§Ãû: ");
+    // è¾“å…¥ç”¨æˆ·å
+    printf("è¯·è¾“å…¥ç”¨æˆ·å: ");
     fgets(username, sizeof(username), stdin);
     trimNewline(username);
 
-    // ÊäÈëÃÜÂë
-    printf("ÇëÊäÈëÃÜÂë: ");
+    // è¾“å…¥å¯†ç 
+    printf("è¯·è¾“å…¥å¯†ç : ");
     fgets(password, sizeof(password), stdin);
     trimNewline(password);
 
-    // ÔÚÁ´±íÖĞ²éÕÒÓÃ»§
+    // åœ¨é“¾è¡¨ä¸­æŸ¥æ‰¾ç”¨æˆ·
     User *current = head;
     while (current != NULL) {
         if (strcmp(current->username, username) == 0 &&
             strcmp(current->password, password) == 0 &&
             current->isAdmin == isAdmin) {
             if (isAdmin) {
-                printf("¹ÜÀíÔ±µÇÂ¼³É¹¦£¡»¶Ó­, %s¡£\n", current->name);
+                printf("ç®¡ç†å‘˜ç™»å½•æˆåŠŸï¼æ¬¢è¿, %sã€‚\n", current->name);
             } else {
-                printf("µÇÂ¼³É¹¦£¡»¶Ó­, %s¡£\n", current->name);
+                printf("ç™»å½•æˆåŠŸï¼æ¬¢è¿, %sã€‚\n", current->name);
             }
             return current;
         }
@@ -605,116 +678,116 @@ User* loginUser(int isAdmin) {
     }
 
     if (isAdmin) {
-        printf("¹ÜÀíÔ±ÓÃ»§Ãû»òÃÜÂë´íÎó¡£\n");
+        printf("ç®¡ç†å‘˜ç”¨æˆ·åæˆ–å¯†ç é”™è¯¯ã€‚\n");
     } else {
-        printf("ÓÃ»§Ãû»òÃÜÂë´íÎó¡£\n");
+        printf("ç”¨æˆ·åæˆ–å¯†ç é”™è¯¯ã€‚\n");
     }
     return NULL;
 }
 
-// ÏÔÊ¾¸öÈËĞÅÏ¢
+// æ˜¾ç¤ºä¸ªäººä¿¡æ¯
 void displayUserInfo(User *user) {
-    printf("\n=== ¸öÈËĞÅÏ¢ ===\n");
-    printf("ĞÕÃû: %s\n", user->name);
-    printf("ÓÃ»§Ãû: %s\n", user->username);
-    printf("´ò¿¨ÌìÊı: %d\n", user->checkin_days);
-    printf("×Ü¼Æ±³ÁË¶àÉÙµ¥´Ê: %d\n", user->total_words);
-    printf("´íÌâÊı: %d\n", user->wrong_words);
-    printf("ÕıÈ·ÂÊ: %.2f%%\n", user->correct_rate); // ÏÔÊ¾ÕıÈ·ÂÊ
-    printf("ÉÏÒ»´Î´ò¿¨Ê±¼ä: %s\n", user->last_checkin_time);
+    printf("\n=== ä¸ªäººä¿¡æ¯ ===\n");
+    printf("å§“å: %s\n", user->name);
+    printf("ç”¨æˆ·å: %s\n", user->username);
+    printf("æ‰“å¡å¤©æ•°: %d\n", user->checkin_days);
+    printf("æ€»è®¡èƒŒäº†å¤šå°‘å•è¯: %d\n", user->total_words);
+    printf("é”™é¢˜æ•°: %d\n", user->wrong_words);
+    printf("æ­£ç¡®ç‡: %.2f%%\n", user->correct_rate); // æ˜¾ç¤ºæ­£ç¡®ç‡
+    printf("ä¸Šä¸€æ¬¡æ‰“å¡æ—¶é—´: %s\n", user->last_checkin_time);
 }
 
-// ´ò¿¨¹¦ÄÜ
+// æ‰“å¡åŠŸèƒ½
 void checkIn(User *user) {
-    // »ñÈ¡µ±Ç°Ê±¼ä
+    // è·å–å½“å‰æ—¶é—´
     time_t now = time(NULL);
     struct tm *t = localtime(&now);
-    char current_date[11]; // ¸ñÊ½: YYYY-MM-DD
+    char current_date[11]; // æ ¼å¼: YYYY-MM-DD
     strftime(current_date, sizeof(current_date), "%Y-%m-%d", t);
 
-    // ÌáÈ¡ÉÏÒ»´Î´ò¿¨µÄÈÕÆÚ
+    // æå–ä¸Šä¸€æ¬¡æ‰“å¡çš„æ—¥æœŸ
     char last_date[11];
-    if (strcmp(user->last_checkin_time, "Î´´ò¿¨") != 0) {
+    if (strcmp(user->last_checkin_time, "æœªæ‰“å¡") != 0) {
         strncpy(last_date, user->last_checkin_time, 10);
         last_date[10] = '\0';
     } else {
         strcpy(last_date, "0000-00-00");
     }
 
-    // ±È½Ïµ±Ç°ÈÕÆÚºÍÉÏÒ»´Î´ò¿¨ÈÕÆÚ
+    // æ¯”è¾ƒå½“å‰æ—¥æœŸå’Œä¸Šä¸€æ¬¡æ‰“å¡æ—¥æœŸ
     if (strcmp(current_date, last_date) == 0) {
-        printf("½ñÌìÒÑ¾­´ò¹ı¿¨ÁË£¬ÇëÃ÷ÌìÔÙÀ´¡£\n");
+        printf("ä»Šå¤©å·²ç»æ‰“è¿‡å¡äº†ï¼Œè¯·æ˜å¤©å†æ¥ã€‚\n");
         return;
     }
 
-    // ¸üĞÂÓÃ»§ĞÅÏ¢
+    // æ›´æ–°ç”¨æˆ·ä¿¡æ¯
     user->checkin_days += 1;
 
-    // ¸üĞÂ´ò¿¨Ê±¼ä
+    // æ›´æ–°æ‰“å¡æ—¶é—´
     char time_str[20];
     strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", t);
     strcpy(user->last_checkin_time, time_str);
 
-    // Í³¼ÆÒÑÑ§¹ıµÄµ¥´ÊÊı
+    // ç»Ÿè®¡å·²å­¦è¿‡çš„å•è¯æ•°
     int already_count = 0;
     FILE *alreadyFile = fopen("already.txt", "r");
     if (alreadyFile != NULL) {
         char line[256];
         while (fgets(line, sizeof(line), alreadyFile)) {
-            if (strlen(line) > 1) { // ÅÅ³ı¿ÕĞĞ
+            if (strlen(line) > 1) { // æ’é™¤ç©ºè¡Œ
                 already_count++;
             }
         }
         fclose(alreadyFile);
     }
 
-    // Í³¼Æ´íÎóµÄµ¥´ÊÊı
+    // ç»Ÿè®¡é”™è¯¯çš„å•è¯æ•°
     int wrong_count = 0;
     FILE *wrongFile = fopen("wrong.txt", "r");
     if (wrongFile != NULL) {
         char line[256];
         while (fgets(line, sizeof(line), wrongFile)) {
-            if (strlen(line) > 1) { // ÅÅ³ı¿ÕĞĞ
+            if (strlen(line) > 1) { // æ’é™¤ç©ºè¡Œ
                 wrong_count++;
             }
         }
         fclose(wrongFile);
     }
 
-    // ¼ÆËã×ÜÑ§Ï°µ¥´ÊÊı
+    // è®¡ç®—æ€»å­¦ä¹ å•è¯æ•°
     int total_learned = already_count + wrong_count;
     user->total_words = total_learned;
 
-    // ¼ÆËãÕıÈ·ÂÊ
+    // è®¡ç®—æ­£ç¡®ç‡
     if (total_learned > 0) {
         user->correct_rate = ((float)(total_learned - wrong_count) / total_learned) * 100.0f;
     } else {
         user->correct_rate = 0.0f;
     }
 
-    // ±£´æËùÓĞÓÃ»§ºÍ¹ÜÀíÔ±µ½ÎÄ¼ş
+    // ä¿å­˜æ‰€æœ‰ç”¨æˆ·å’Œç®¡ç†å‘˜åˆ°æ–‡ä»¶
     if (saveAll() != 0) {
-        printf("´ò¿¨Ê§°Ü£¬ÎŞ·¨±£´æÓÃ»§Êı¾İ¡£\n");
+        printf("æ‰“å¡å¤±è´¥ï¼Œæ— æ³•ä¿å­˜ç”¨æˆ·æ•°æ®ã€‚\n");
         return;
     }
 
-    // ¼ÇÂ¼´ò¿¨ÈÕÖ¾
+    // è®°å½•æ‰“å¡æ—¥å¿—
     appendCheckInLog(user);
 
-    printf("´ò¿¨³É¹¦£¡\n");
-    printf("×ÜÑ§Ï°µ¥´ÊÊı: %d\n", user->total_words);
-    printf("ÕıÈ·ÂÊ: %.2f%%\n", user->correct_rate);
+    printf("æ‰“å¡æˆåŠŸï¼\n");
+    printf("æ€»å­¦ä¹ å•è¯æ•°: %d\n", user->total_words);
+    printf("æ­£ç¡®ç‡: %.2f%%\n", user->correct_rate);
 }
 
-// ½«´ò¿¨ĞÅÏ¢×·¼Óµ½´ò¿¨ÈÕÖ¾ÎÄ¼ş
+// å°†æ‰“å¡ä¿¡æ¯è¿½åŠ åˆ°æ‰“å¡æ—¥å¿—æ–‡ä»¶
 void appendCheckInLog(User *user) {
     FILE *file = fopen("checkin.txt", "a");
     if (file == NULL) {
-        perror("ÎŞ·¨´ò¿ª´ò¿¨ÈÕÖ¾ÎÄ¼ş");
+        perror("æ— æ³•æ‰“å¼€æ‰“å¡æ—¥å¿—æ–‡ä»¶");
         return;
     }
 
-    fprintf(file, "ĞÕÃû: %s, ÓÃ»§Ãû: %s, ´ò¿¨ÌìÊı: %d, ÉÏÒ»´Î´ò¿¨Ê±¼ä: %s\n",
+    fprintf(file, "å§“å: %s, ç”¨æˆ·å: %s, æ‰“å¡å¤©æ•°: %d, ä¸Šä¸€æ¬¡æ‰“å¡æ—¶é—´: %s\n",
         user->name,
         user->username,
         user->checkin_days,
@@ -722,7 +795,7 @@ void appendCheckInLog(User *user) {
     fclose(file);
 }
 
-// ÊÍ·ÅÁ´±íÄÚ´æ
+// é‡Šæ”¾é“¾è¡¨å†…å­˜
 void freeUsers() {
     User *current = head;
     while (current != NULL) {
@@ -732,7 +805,7 @@ void freeUsers() {
     }
 }
 
-// ´ÓÖ¸¶¨´Ê¿âÎÄ¼ş¼ÓÔØµ¥´Êµ½Êı×é£¨ĞŞ¸ÄºóµÄ loadWords£©
+// ä»æŒ‡å®šè¯åº“æ–‡ä»¶åŠ è½½å•è¯åˆ°æ•°ç»„ï¼ˆä¿®æ”¹åçš„ loadWordsï¼‰
 int loadWords() {
 #ifdef _WIN32
     const char *wordPath = "word_libraries\\cet.txt";
@@ -740,48 +813,48 @@ int loadWords() {
     const char *wordPath = "word_libraries/cet.txt";
 #endif
 
-    FILE *file = fopen(wordPath, "r"); // ¼ÓÔØ 'word_libraries/cet.txt' ÎÄ¼ş
+    FILE *file = fopen(wordPath, "r"); // åŠ è½½ 'word_libraries/cet.txt' æ–‡ä»¶
     if (file == NULL) {
-        perror("ÎŞ·¨´ò¿ª 'word_libraries/cet.txt' ÎÄ¼ş");
+        perror("æ— æ³•æ‰“å¼€ 'word_libraries/cet.txt' æ–‡ä»¶");
         return -1;
     }
 
-    // Í³¼Æµ¥´ÊÊıÁ¿
+    // ç»Ÿè®¡å•è¯æ•°é‡
     wordCount = 0;
     char line[256];
     while (fgets(line, sizeof(line), file)) {
-        if (strlen(line) > 1) { // ÅÅ³ı¿ÕĞĞ
+        if (strlen(line) > 1) { // æ’é™¤ç©ºè¡Œ
             wordCount++;
         }
     }
 
     if (wordCount == 0) {
-        printf("'word_libraries\\cet.txt' ÎÄ¼şÖĞÃ»ÓĞÓĞĞ§µÄµ¥´Ê¡£\n");
+        printf("'word_libraries\\cet.txt' æ–‡ä»¶ä¸­æ²¡æœ‰æœ‰æ•ˆçš„å•è¯ã€‚\n");
         fclose(file);
         return -1;
     }
 
-    // ·ÖÅäÄÚ´æ
+    // åˆ†é…å†…å­˜
     wordList = (Word *)malloc(sizeof(Word) * wordCount);
     if (wordList == NULL) {
-        perror("ÄÚ´æ·ÖÅäÊ§°Ü");
+        perror("å†…å­˜åˆ†é…å¤±è´¥");
         fclose(file);
         return -1;
     }
 
-    // ¶ÁÈ¡ËùÓĞµ¥´Ê
+    // è¯»å–æ‰€æœ‰å•è¯
     rewind(file);
     int index = 0;
     while (fgets(line, sizeof(line), file)) {
-        if (strlen(line) <= 1) continue; // ÅÅ³ı¿ÕĞĞ
+        if (strlen(line) <= 1) continue; // æ’é™¤ç©ºè¡Œ
 
         trimNewline(line);
 
-        // Ê¹ÓÃµÚÒ»¸ö¿Õ¸ñ·Ö¸ôÓ¢ÎÄºÍÖĞÎÄ
+        // ä½¿ç”¨ç¬¬ä¸€ä¸ªç©ºæ ¼åˆ†éš”è‹±æ–‡å’Œä¸­æ–‡
         char *space = strchr(line, ' ');
         if (space == NULL) {
             strcpy(wordList[index].english, line);
-            strcpy(wordList[index].chinese, "Î´Öª");
+            strcpy(wordList[index].chinese, "æœªçŸ¥");
         } else {
             *space = '\0';
             strcpy(wordList[index].english, line);
@@ -795,7 +868,7 @@ int loadWords() {
     return 0;
 }
 
-// ÊÍ·Åµ¥´ÊÄÚ´æ
+// é‡Šæ”¾å•è¯å†…å­˜
 void freeWords() {
     if (wordList != NULL) {
         free(wordList);
@@ -803,17 +876,17 @@ void freeWords() {
     }
 }
 
-// ä¯ÀÀÉú´Ê±¾¹¦ÄÜ
+// æµè§ˆç”Ÿè¯æœ¬åŠŸèƒ½
 void viewShengciBen() {
     FILE *file = fopen("shengciben.txt", "r");
     if (file == NULL) {
-        printf("Éú´Ê±¾ÎÄ¼ş²»´æÔÚ»òÎª¿Õ¡£\n");
+        printf("ç”Ÿè¯æœ¬æ–‡ä»¶ä¸å­˜åœ¨æˆ–ä¸ºç©ºã€‚\n");
         return;
     }
 
     char line[256];
     int count = 0;
-    printf("\n=== Éú´Ê±¾ ===\n");
+    printf("\n=== ç”Ÿè¯æœ¬ ===\n");
     while (fgets(line, sizeof(line), file)) {
         trimNewline(line);
         if (strlen(line) > 0) {
@@ -822,42 +895,42 @@ void viewShengciBen() {
     }
 
     if (count == 0) {
-        printf("Éú´Ê±¾Îª¿Õ¡£\n");
+        printf("ç”Ÿè¯æœ¬ä¸ºç©ºã€‚\n");
     }
 
     fclose(file);
 }
 
-// ±³ËĞµ¥´Ê¹¦ÄÜ£¬¼ò»¯ÎªÁ½ÖÖÄ£Ê½
+// èƒŒè¯µå•è¯åŠŸèƒ½ï¼Œç®€åŒ–ä¸ºä¸¤ç§æ¨¡å¼
 void reciteWords(User *user) {
     if (wordCount == 0) {
-        printf("´Ê¿âÎª¿Õ£¬ÎŞ·¨½øĞĞ±³ËĞ¡£\n");
+        printf("è¯åº“ä¸ºç©ºï¼Œæ— æ³•è¿›è¡ŒèƒŒè¯µã€‚\n");
         return;
     }
 
-    printf("\n=== ±³ËĞµ¥´Ê ===\n");
-    printf("ÇëÑ¡Ôñ±³ËĞÄ£Ê½:\n");
-    printf("1. ¸ù¾İÓ¢ÎÄĞ´ÖĞÎÄ\n");
-    printf("2. ¸ù¾İÖĞÎÄĞ´Ó¢ÎÄ\n");
-    printf("ÇëÊäÈëÑ¡Ôñ: ");
+    printf("\n=== èƒŒè¯µå•è¯ ===\n");
+    printf("è¯·é€‰æ‹©èƒŒè¯µæ¨¡å¼:\n");
+    printf("1. æ ¹æ®è‹±æ–‡å†™ä¸­æ–‡\n");
+    printf("2. æ ¹æ®ä¸­æ–‡å†™è‹±æ–‡\n");
+    printf("è¯·è¾“å…¥é€‰æ‹©: ");
 
     int mode;
     if (scanf("%d", &mode) != 1) {
         clearInputBuffer();
-        printf("ÎŞĞ§µÄÊäÈë£¬ÇëÊäÈëÊı×Ö¡£\n");
+        printf("æ— æ•ˆçš„è¾“å…¥ï¼Œè¯·è¾“å…¥æ•°å­—ã€‚\n");
         return;
     }
-    clearInputBuffer(); // Çå³ıÊäÈë»º³åÇø
+    clearInputBuffer(); // æ¸…é™¤è¾“å…¥ç¼“å†²åŒº
 
     if (mode < 1 || mode > 2) {
-        printf("ÎŞĞ§µÄÑ¡Ôñ£¬ÇëÖØĞÂÑ¡Ôñ¡£\n");
+        printf("æ— æ•ˆçš„é€‰æ‹©ï¼Œè¯·é‡æ–°é€‰æ‹©ã€‚\n");
         return;
     }
 
-    // ´´½¨Ò»¸öË÷ÒıÊı×éÓÃÓÚÑ¡Ôñµ¥´Ê
+    // åˆ›å»ºä¸€ä¸ªç´¢å¼•æ•°ç»„ç”¨äºé€‰æ‹©å•è¯
     int *indices = (int *)malloc(sizeof(int) * wordCount);
     if (indices == NULL) {
-        perror("ÄÚ´æ·ÖÅäÊ§°Ü");
+        perror("å†…å­˜åˆ†é…å¤±è´¥");
         return;
     }
 
@@ -865,7 +938,7 @@ void reciteWords(User *user) {
         indices[i] = i;
     }
 
-    // ¸ù¾İÄ£Ê½¾ö¶¨ÊÇ·ñ´òÂÒË³Ğò£¨ÕâÀïÍ³Ò»´òÂÒ£©
+    // æ ¹æ®æ¨¡å¼å†³å®šæ˜¯å¦æ‰“ä¹±é¡ºåºï¼ˆè¿™é‡Œç»Ÿä¸€æ‰“ä¹±ï¼‰
     for (int i = wordCount - 1; i > 0; i--) {
         int j = rand() % (i + 1);
         int temp = indices[i];
@@ -873,9 +946,9 @@ void reciteWords(User *user) {
         indices[j] = temp;
     }
 
-    printf("\n=== ±³ËĞ¿ªÊ¼ ===\n");
+    printf("\n=== èƒŒè¯µå¼€å§‹ ===\n");
 
-    int totalQuestions = 10; // ÉèÖÃ±³ËĞµÄ×ÜÌâÊı
+    int totalQuestions = 10; // è®¾ç½®èƒŒè¯µçš„æ€»é¢˜æ•°
     if (wordCount < 10) {
         totalQuestions = wordCount;
     }
@@ -887,15 +960,15 @@ void reciteWords(User *user) {
         char prompt[100];
 
         if (mode == 1) {
-            // ¸ù¾İÓ¢ÎÄĞ´ÖĞÎÄ
+            // æ ¹æ®è‹±æ–‡å†™ä¸­æ–‡
             strcpy(question, wordList[idx].english);
             strcpy(correctAnswer, wordList[idx].chinese);
-            snprintf(prompt, sizeof(prompt), "ÇëĞ´³öÒÔÏÂÓ¢ÎÄµ¥´ÊµÄÖĞÎÄ:\n%s: ", question);
+            snprintf(prompt, sizeof(prompt), "è¯·å†™å‡ºä»¥ä¸‹è‹±æ–‡å•è¯çš„ä¸­æ–‡:\n%s: ", question);
         } else {
-            // ¸ù¾İÖĞÎÄĞ´Ó¢ÎÄ
+            // æ ¹æ®ä¸­æ–‡å†™è‹±æ–‡
             strcpy(question, wordList[idx].chinese);
             strcpy(correctAnswer, wordList[idx].english);
-            snprintf(prompt, sizeof(prompt), "ÇëĞ´³öÒÔÏÂÖĞÎÄµ¥´ÊµÄÓ¢ÎÄ:\n%s: ", question);
+            snprintf(prompt, sizeof(prompt), "è¯·å†™å‡ºä»¥ä¸‹ä¸­æ–‡å•è¯çš„è‹±æ–‡:\n%s: ", question);
         }
 
         printf("%s", prompt);
@@ -904,121 +977,121 @@ void reciteWords(User *user) {
         fgets(answer, sizeof(answer), stdin);
         trimNewline(answer);
 
-        // ¼ì²é´ğ°¸£¨ºöÂÔ´óĞ¡Ğ´£©
+        // æ£€æŸ¥ç­”æ¡ˆï¼ˆå¿½ç•¥å¤§å°å†™ï¼‰
         if (strcasecmp(answer, correctAnswer) == 0) {
-            printf("ÕıÈ·£¡\n");
-            // ¼ÇÂ¼ÒÑÑ§¹ıµÄµ¥´Ê
+            printf("æ­£ç¡®ï¼\n");
+            // è®°å½•å·²å­¦è¿‡çš„å•è¯
             FILE *alreadyFile = fopen("already.txt", "a");
             if (alreadyFile != NULL) {
                 fprintf(alreadyFile, "%s %s\n", wordList[idx].english, wordList[idx].chinese);
                 fclose(alreadyFile);
             } else {
-                perror("ÎŞ·¨´ò¿ªalready.txt");
+                perror("æ— æ³•æ‰“å¼€already.txt");
             }
         } else {
-            printf("´íÎó¡£ÕıÈ·´ğ°¸ÊÇ: %s\n", correctAnswer);
-            // Ôö¼Ó´íÎóµ¥´Ê¼ÆÊı
+            printf("é”™è¯¯ã€‚æ­£ç¡®ç­”æ¡ˆæ˜¯: %s\n", correctAnswer);
+            // å¢åŠ é”™è¯¯å•è¯è®¡æ•°
             user->wrong_words += 1;
-            // ¼ÇÂ¼´íÎóµ¥´Ê
+            // è®°å½•é”™è¯¯å•è¯
             FILE *wrongFile = fopen("wrong.txt", "a");
             if (wrongFile != NULL) {
                 fprintf(wrongFile, "%s %s\n", wordList[idx].english, wordList[idx].chinese);
                 fclose(wrongFile);
             } else {
-                perror("ÎŞ·¨´ò¿ªwrong.txt");
+                perror("æ— æ³•æ‰“å¼€wrong.txt");
             }
         }
 
-        // Ñ¯ÎÊ²Ù×÷Ñ¡Ïî
-        printf("ÇëÑ¡Ôñ²Ù×÷:\n");
-        printf("1. ÏÂÒ»Ìâ\n");
-        printf("2. ¼ÓÈëÉú´Ê±¾\n");
-        printf("3. ÍË³ö±³ËĞ\n");
-        printf("ÇëÊäÈëÑ¡Ôñ: ");
+        // è¯¢é—®æ“ä½œé€‰é¡¹
+        printf("è¯·é€‰æ‹©æ“ä½œ:\n");
+        printf("1. ä¸‹ä¸€é¢˜\n");
+        printf("2. åŠ å…¥ç”Ÿè¯æœ¬\n");
+        printf("3. é€€å‡ºèƒŒè¯µ\n");
+        printf("è¯·è¾“å…¥é€‰æ‹©: ");
 
         int op;
         if (scanf("%d", &op) != 1) {
             clearInputBuffer();
-            printf("ÎŞĞ§µÄÊäÈë£¬Ä¬ÈÏ¼ÌĞøÏÂÒ»Ìâ¡£\n");
+            printf("æ— æ•ˆçš„è¾“å…¥ï¼Œé»˜è®¤ç»§ç»­ä¸‹ä¸€é¢˜ã€‚\n");
             continue;
         }
-        clearInputBuffer(); // Çå³ıÊäÈë»º³åÇø
+        clearInputBuffer(); // æ¸…é™¤è¾“å…¥ç¼“å†²åŒº
 
         switch (op) {
         case 1:
-            // ¼ÌĞøÏÂÒ»Ìâ
+            // ç»§ç»­ä¸‹ä¸€é¢˜
             break;
         case 2:
             addToShengciBen(wordList[idx].english, wordList[idx].chinese);
-            printf("ÒÑ½«µ¥´Ê '%s' Ìí¼Óµ½Éú´Ê±¾¡£\n", wordList[idx].english);
-            // ĞÂÔö£ºÑ¡ÔñÏÂÒ»²½²Ù×÷
+            printf("å·²å°†å•è¯ '%s' æ·»åŠ åˆ°ç”Ÿè¯æœ¬ã€‚\n", wordList[idx].english);
+            // æ–°å¢ï¼šé€‰æ‹©ä¸‹ä¸€æ­¥æ“ä½œ
             while (1) {
-                printf("ÇëÑ¡Ôñ²Ù×÷:\n");
-                printf("1. ÏÂÒ»Ìâ\n");
-                printf("2. ÍË³ö±³ËĞ\n");
-                printf("ÇëÊäÈëÑ¡Ôñ: ");
+                printf("è¯·é€‰æ‹©æ“ä½œ:\n");
+                printf("1. ä¸‹ä¸€é¢˜\n");
+                printf("2. é€€å‡ºèƒŒè¯µ\n");
+                printf("è¯·è¾“å…¥é€‰æ‹©: ");
                 int subOp;
                 if (scanf("%d", &subOp) != 1) {
                     clearInputBuffer();
-                    printf("ÎŞĞ§µÄÊäÈë£¬ÇëÊäÈëÊı×Ö¡£\n");
+                    printf("æ— æ•ˆçš„è¾“å…¥ï¼Œè¯·è¾“å…¥æ•°å­—ã€‚\n");
                     continue;
                 }
-                clearInputBuffer(); // Çå³ıÊäÈë»º³åÇø
+                clearInputBuffer(); // æ¸…é™¤è¾“å…¥ç¼“å†²åŒº
 
                 if (subOp == 1) {
-                    // ¼ÌĞøÏÂÒ»Ìâ
+                    // ç»§ç»­ä¸‹ä¸€é¢˜
                     break;
                 } else if (subOp == 2) {
-                    printf("ÒÑÍË³ö±³ËĞ¡£\n");
+                    printf("å·²é€€å‡ºèƒŒè¯µã€‚\n");
                     free(indices);
-                    // ±£´æÓÃ»§ºÍ¹ÜÀíÔ±Êı¾İ
+                    // ä¿å­˜ç”¨æˆ·å’Œç®¡ç†å‘˜æ•°æ®
                     if (saveAll() != 0) {
-                        printf("±£´æÓÃ»§Êı¾İÊ§°Ü¡£\n");
+                        printf("ä¿å­˜ç”¨æˆ·æ•°æ®å¤±è´¥ã€‚\n");
                     } else {
-                        printf("ÓÃ»§Êı¾İÒÑ¸üĞÂ¡£\n");
+                        printf("ç”¨æˆ·æ•°æ®å·²æ›´æ–°ã€‚\n");
                     }
                     return;
                 } else {
-                    printf("ÎŞĞ§µÄÑ¡Ôñ£¬ÇëÖØĞÂÊäÈë¡£\n");
+                    printf("æ— æ•ˆçš„é€‰æ‹©ï¼Œè¯·é‡æ–°è¾“å…¥ã€‚\n");
                 }
             }
             break;
         case 3:
-            printf("ÒÑÍË³ö±³ËĞ¡£\n");
+            printf("å·²é€€å‡ºèƒŒè¯µã€‚\n");
             free(indices);
-            // ±£´æÓÃ»§ºÍ¹ÜÀíÔ±Êı¾İ
+            // ä¿å­˜ç”¨æˆ·å’Œç®¡ç†å‘˜æ•°æ®
             if (saveAll() != 0) {
-                printf("±£´æÓÃ»§Êı¾İÊ§°Ü¡£\n");
+                printf("ä¿å­˜ç”¨æˆ·æ•°æ®å¤±è´¥ã€‚\n");
             } else {
-                printf("ÓÃ»§Êı¾İÒÑ¸üĞÂ¡£\n");
+                printf("ç”¨æˆ·æ•°æ®å·²æ›´æ–°ã€‚\n");
             }
-            return; // ÍË³ö±³ËĞ
+            return; // é€€å‡ºèƒŒè¯µ
         default:
-            printf("ÎŞĞ§µÄÑ¡Ôñ£¬¼ÌĞøÏÂÒ»Ìâ¡£\n");
+            printf("æ— æ•ˆçš„é€‰æ‹©ï¼Œç»§ç»­ä¸‹ä¸€é¢˜ã€‚\n");
         }
     }
 
     free(indices);
 
-    // ±£´æÓÃ»§ºÍ¹ÜÀíÔ±Êı¾İ
+    // ä¿å­˜ç”¨æˆ·å’Œç®¡ç†å‘˜æ•°æ®
     if (saveAll() != 0) {
-        printf("±£´æÓÃ»§Êı¾İÊ§°Ü¡£\n");
+        printf("ä¿å­˜ç”¨æˆ·æ•°æ®å¤±è´¥ã€‚\n");
     } else {
-        printf("±³ËĞÍê³É£¬ÓÃ»§Êı¾İÒÑ¸üĞÂ¡£\n");
+        printf("èƒŒè¯µå®Œæˆï¼Œç”¨æˆ·æ•°æ®å·²æ›´æ–°ã€‚\n");
     }
 }
 
-// Ä¬Ğ´¹¦ÄÜ
+// é»˜å†™åŠŸèƒ½
 void dictation(User *user) {
     if (wordCount < 20) {
-        printf("µ¥´ÊÊıÁ¿²»×ã20¸ö£¬µ±Ç°µ¥´ÊÊı: %d\n", wordCount);
+        printf("å•è¯æ•°é‡ä¸è¶³20ä¸ªï¼Œå½“å‰å•è¯æ•°: %d\n", wordCount);
         return;
     }
 
-    // ´´½¨Ò»¸öË÷ÒıÊı×éÓÃÓÚËæ»úÑ¡Ôñ
+    // åˆ›å»ºä¸€ä¸ªç´¢å¼•æ•°ç»„ç”¨äºéšæœºé€‰æ‹©
     int *indices = (int *)malloc(sizeof(int) * wordCount);
     if (indices == NULL) {
-        perror("ÄÚ´æ·ÖÅäÊ§°Ü");
+        perror("å†…å­˜åˆ†é…å¤±è´¥");
         return;
     }
 
@@ -1026,100 +1099,100 @@ void dictation(User *user) {
         indices[i] = i;
     }
 
-    // Ëæ»ú´òÂÒË÷ÒıÊı×é
+    // éšæœºæ‰“ä¹±ç´¢å¼•æ•°ç»„
     for (int i = wordCount - 1; i > 0; i--) {
         int j = rand() % (i + 1);
-        // ½»»»
+        // äº¤æ¢
         int temp = indices[i];
         indices[i] = indices[j];
         indices[j] = temp;
     }
 
-    // Ñ¡ÔñÇ°20¸öË÷Òı
-    printf("\n=== Ä¬Ğ´¿ªÊ¼ ===\n");
-    printf("ÇëÊäÈëµ¥´ÊµÄÓ¢ÎÄ·­Òë£¬ÊäÈë 'exit' »ò 'quit' ¿ÉÒÔÌáÇ°½áÊøÄ¬Ğ´¡£\n");
+    // é€‰æ‹©å‰20ä¸ªç´¢å¼•
+    printf("\n=== é»˜å†™å¼€å§‹ ===\n");
+    printf("è¯·è¾“å…¥å•è¯çš„è‹±æ–‡ç¿»è¯‘ï¼Œè¾“å…¥ 'exit' æˆ– 'quit' å¯ä»¥æå‰ç»“æŸé»˜å†™ã€‚\n");
     for (int i = 0; i < 20; i++) {
         int idx = indices[i];
-        printf("ÇëĞ´³öÒÔÏÂÖĞÎÄµ¥´ÊµÄÓ¢ÎÄ:\n%s: ", wordList[idx].chinese);
+        printf("è¯·å†™å‡ºä»¥ä¸‹ä¸­æ–‡å•è¯çš„è‹±æ–‡:\n%s: ", wordList[idx].chinese);
 
         char answer[50];
         fgets(answer, sizeof(answer), stdin);
         trimNewline(answer);
 
-        // ¼ì²éÊÇ·ñÊäÈëÁËÖÕÖ¹ÃüÁî
+        // æ£€æŸ¥æ˜¯å¦è¾“å…¥äº†ç»ˆæ­¢å‘½ä»¤
         if (strcasecmp(answer, "exit") == 0 || strcasecmp(answer, "quit") == 0) {
-            printf("ÒÑÌáÇ°½áÊøÄ¬Ğ´¡£\n");
+            printf("å·²æå‰ç»“æŸé»˜å†™ã€‚\n");
             break;
         }
 
-        // ¼ì²é´ğ°¸£¨ºöÂÔ´óĞ¡Ğ´£©
+        // æ£€æŸ¥ç­”æ¡ˆï¼ˆå¿½ç•¥å¤§å°å†™ï¼‰
         if (strcasecmp(answer, wordList[idx].english) == 0) {
-            printf("ÕıÈ·£¡\n");
-            // ×·¼Óµ½ already.txt
+            printf("æ­£ç¡®ï¼\n");
+            // è¿½åŠ åˆ° already.txt
             FILE *alreadyFile = fopen("already.txt", "a");
             if (alreadyFile != NULL) {
                 fprintf(alreadyFile, "%s %s\n", wordList[idx].english, wordList[idx].chinese);
                 fclose(alreadyFile);
             } else {
-                perror("ÎŞ·¨´ò¿ªalready.txt");
+                perror("æ— æ³•æ‰“å¼€already.txt");
             }
         } else {
-            printf("´íÎó¡£ÕıÈ·´ğ°¸ÊÇ: %s\n", wordList[idx].english);
-            // Ôö¼Ó´íÎóµ¥´Ê¼ÆÊı
+            printf("é”™è¯¯ã€‚æ­£ç¡®ç­”æ¡ˆæ˜¯: %s\n", wordList[idx].english);
+            // å¢åŠ é”™è¯¯å•è¯è®¡æ•°
             user->wrong_words += 1;
-            // ×·¼Óµ½ wrong.txt
+            // è¿½åŠ åˆ° wrong.txt
             FILE *wrongFile = fopen("wrong.txt", "a");
             if (wrongFile != NULL) {
                 fprintf(wrongFile, "%s %s\n", wordList[idx].english, wordList[idx].chinese);
                 fclose(wrongFile);
             } else {
-                perror("ÎŞ·¨´ò¿ªwrong.txt");
+                perror("æ— æ³•æ‰“å¼€wrong.txt");
             }
         }
 
-        // ĞÂÔö²¿·Ö£ºÑ¯ÎÊÊÇ·ñ½«µ¥´Ê¼ÓÈëÉú´Ê±¾
-        printf("ÊÇ·ñ½«¸Ãµ¥´Ê¼ÓÈëÉú´Ê±¾£¿(y/n): ");
+        // æ–°å¢éƒ¨åˆ†ï¼šè¯¢é—®æ˜¯å¦å°†å•è¯åŠ å…¥ç”Ÿè¯æœ¬
+        printf("æ˜¯å¦å°†è¯¥å•è¯åŠ å…¥ç”Ÿè¯æœ¬ï¼Ÿ(y/n): ");
         char choice;
         scanf(" %c", &choice);
-        clearInputBuffer(); // Çå³ıÊäÈë»º³åÇø
+        clearInputBuffer(); // æ¸…é™¤è¾“å…¥ç¼“å†²åŒº
         if (choice == 'y' || choice == 'Y') {
             addToShengciBen(wordList[idx].english, wordList[idx].chinese);
-            printf("ÒÑ½«µ¥´Ê '%s' Ìí¼Óµ½Éú´Ê±¾¡£\n", wordList[idx].english);
+            printf("å·²å°†å•è¯ '%s' æ·»åŠ åˆ°ç”Ÿè¯æœ¬ã€‚\n", wordList[idx].english);
         }
     }
 
     free(indices);
 
-    // ±£´æÓÃ»§ºÍ¹ÜÀíÔ±Êı¾İ
+    // ä¿å­˜ç”¨æˆ·å’Œç®¡ç†å‘˜æ•°æ®
     if (saveAll() != 0) {
-        printf("±£´æÓÃ»§Êı¾İÊ§°Ü¡£\n");
+        printf("ä¿å­˜ç”¨æˆ·æ•°æ®å¤±è´¥ã€‚\n");
     } else {
-        printf("Ä¬Ğ´Íê³É£¬ÓÃ»§Êı¾İÒÑ¸üĞÂ¡£\n");
+        printf("é»˜å†™å®Œæˆï¼Œç”¨æˆ·æ•°æ®å·²æ›´æ–°ã€‚\n");
     }
 }
 
-// ĞÂÔöº¯Êı£º½«µ¥´ÊÌí¼Óµ½Éú´Ê±¾
+// æ–°å¢å‡½æ•°ï¼šå°†å•è¯æ·»åŠ åˆ°ç”Ÿè¯æœ¬
 void addToShengciBen(const char *english, const char *chinese) {
     FILE *file = fopen("shengciben.txt", "a");
     if (file == NULL) {
-        perror("ÎŞ·¨´ò¿ªshengciben.txt");
+        perror("æ— æ³•æ‰“å¼€shengciben.txt");
         return;
     }
     fprintf(file, "%s %s\n", english, chinese);
     fclose(file);
 }
 
-// ²é¿´´íÎóµ¥´Ê
+// æŸ¥çœ‹é”™è¯¯å•è¯
 void viewWrongWords() {
     FILE *file = fopen("wrong.txt", "r");
     if (file == NULL) {
-        printf("´íÎóµ¥´ÊÁĞ±í²»´æÔÚ¡£\n");
+        printf("é”™è¯¯å•è¯åˆ—è¡¨ä¸å­˜åœ¨ã€‚\n");
         return;
     }
 
     char line[256];
     int count = 0;
-    printf("\n=== ´íÎóµ¥´ÊÁĞ±í ===\n");
+    printf("\n=== é”™è¯¯å•è¯åˆ—è¡¨ ===\n");
     while (fgets(line, sizeof(line), file)) {
         trimNewline(line);
         if (strlen(line) > 0) {
@@ -1128,23 +1201,23 @@ void viewWrongWords() {
     }
 
     if (count == 0) {
-        printf("´íÎóµ¥´ÊÁĞ±íÎª¿Õ¡£\n");
+        printf("é”™è¯¯å•è¯åˆ—è¡¨ä¸ºç©ºã€‚\n");
     }
 
     fclose(file);
 }
 
-// ²é¿´ÒÑÑ§¹ıµÄµ¥´Ê
+// æŸ¥çœ‹å·²å­¦è¿‡çš„å•è¯
 void viewAlreadyLearnedWords() {
     FILE *file = fopen("already.txt", "r");
     if (file == NULL) {
-        printf("ÒÑÑ§¹ıµÄµ¥´ÊÁĞ±í²»´æÔÚ¡£\n");
+        printf("å·²å­¦è¿‡çš„å•è¯åˆ—è¡¨ä¸å­˜åœ¨ã€‚\n");
         return;
     }
 
     char line[256];
     int count = 0;
-    printf("\n=== ÒÑÑ§¹ıµÄµ¥´ÊÁĞ±í ===\n");
+    printf("\n=== å·²å­¦è¿‡çš„å•è¯åˆ—è¡¨ ===\n");
     while (fgets(line, sizeof(line), file)) {
         trimNewline(line);
         if (strlen(line) > 0) {
@@ -1153,21 +1226,21 @@ void viewAlreadyLearnedWords() {
     }
 
     if (count == 0) {
-        printf("ÒÑÑ§¹ıµÄµ¥´ÊÁĞ±íÎª¿Õ¡£\n");
+        printf("å·²å­¦è¿‡çš„å•è¯åˆ—è¡¨ä¸ºç©ºã€‚\n");
     }
 
     fclose(file);
 }
 
-// ´íÌâµ¥´ÊÑµÁ·¹¦ÄÜ
+// é”™é¢˜å•è¯è®­ç»ƒåŠŸèƒ½
 void wrongWordTraining(User *user) {
     FILE *file = fopen("wrong.txt", "r");
     if (file == NULL) {
-        printf("´íÌâ±¾²»´æÔÚ»òÎª¿Õ¡£\n");
+        printf("é”™é¢˜æœ¬ä¸å­˜åœ¨æˆ–ä¸ºç©ºã€‚\n");
         return;
     }
 
-    // ¶ÁÈ¡ËùÓĞ´íÌâµ½Êı×é
+    // è¯»å–æ‰€æœ‰é”™é¢˜åˆ°æ•°ç»„
     char **wrongWords = NULL;
     int wrongCount = 0;
     char line[256];
@@ -1176,13 +1249,13 @@ void wrongWordTraining(User *user) {
         if (strlen(line) > 0) {
             wrongWords = (char **)realloc(wrongWords, sizeof(char *) * (wrongCount + 1));
             if (wrongWords == NULL) {
-                perror("ÄÚ´æ·ÖÅäÊ§°Ü");
+                perror("å†…å­˜åˆ†é…å¤±è´¥");
                 fclose(file);
                 return;
             }
             wrongWords[wrongCount] = strdup(line);
             if (wrongWords[wrongCount] == NULL) {
-                perror("ÄÚ´æ·ÖÅäÊ§°Ü");
+                perror("å†…å­˜åˆ†é…å¤±è´¥");
                 fclose(file);
                 return;
             }
@@ -1192,19 +1265,19 @@ void wrongWordTraining(User *user) {
     fclose(file);
 
     if (wrongCount == 0) {
-        printf("´íÌâ±¾Îª¿Õ£¬ÎŞĞèÑµÁ·¡£\n");
+        printf("é”™é¢˜æœ¬ä¸ºç©ºï¼Œæ— éœ€è®­ç»ƒã€‚\n");
         free(wrongWords);
         return;
     }
 
-    // ¾ö¶¨ÑµÁ·µÄµ¥´ÊÊıÁ¿
+    // å†³å®šè®­ç»ƒçš„å•è¯æ•°é‡
     int trainCount = wrongCount < 20 ? wrongCount : 20;
 
-    // ´´½¨Ò»¸öË÷ÒıÊı×éÓÃÓÚËæ»úÑ¡Ôñ
+    // åˆ›å»ºä¸€ä¸ªç´¢å¼•æ•°ç»„ç”¨äºéšæœºé€‰æ‹©
     int *indices = (int *)malloc(sizeof(int) * wrongCount);
     if (indices == NULL) {
-        perror("ÄÚ´æ·ÖÅäÊ§°Ü");
-        // ÊÍ·ÅwrongWords
+        perror("å†…å­˜åˆ†é…å¤±è´¥");
+        // é‡Šæ”¾wrongWords
         for (int i = 0; i < wrongCount; i++) {
             free(wrongWords[i]);
         }
@@ -1216,21 +1289,21 @@ void wrongWordTraining(User *user) {
         indices[i] = i;
     }
 
-    // Ëæ»ú´òÂÒË÷ÒıÊı×é
+    // éšæœºæ‰“ä¹±ç´¢å¼•æ•°ç»„
     for (int i = wrongCount - 1; i > 0; i--) {
         int j = rand() % (i + 1);
-        // ½»»»
+        // äº¤æ¢
         int temp = indices[i];
         indices[i] = indices[j];
         indices[j] = temp;
     }
 
-    // Ñ¡ÔñÇ°trainCount¸öË÷Òı½øĞĞÑµÁ·
-    printf("\n=== ´íÌâµ¥´ÊÑµÁ·¿ªÊ¼ ===\n");
+    // é€‰æ‹©å‰trainCountä¸ªç´¢å¼•è¿›è¡Œè®­ç»ƒ
+    printf("\n=== é”™é¢˜å•è¯è®­ç»ƒå¼€å§‹ ===\n");
     int *correctIndices = (int *)malloc(sizeof(int) * trainCount);
     if (correctIndices == NULL) {
-        perror("ÄÚ´æ·ÖÅäÊ§°Ü");
-        // ÊÍ·Å×ÊÔ´
+        perror("å†…å­˜åˆ†é…å¤±è´¥");
+        // é‡Šæ”¾èµ„æº
         free(indices);
         for (int i = 0; i < wrongCount; i++) {
             free(wrongWords[i]);
@@ -1242,67 +1315,67 @@ void wrongWordTraining(User *user) {
 
     for (int i = 0; i < trainCount; i++) {
         int idx = indices[i];
-        // ·Ö¸îÓ¢ÎÄºÍÖĞÎÄ
+        // åˆ†å‰²è‹±æ–‡å’Œä¸­æ–‡
         char *english = strtok(wrongWords[idx], " ");
         char *chinese = strtok(NULL, "");
 
         if (english == NULL || chinese == NULL) {
-            printf("¸ñÊ½´íÎó: %s\n", wrongWords[idx]);
+            printf("æ ¼å¼é”™è¯¯: %s\n", wrongWords[idx]);
             continue;
         }
 
-        printf("ÇëĞ´³öÒÔÏÂÖĞÎÄµ¥´ÊµÄÓ¢ÎÄ:\n%s: ", chinese);
+        printf("è¯·å†™å‡ºä»¥ä¸‹ä¸­æ–‡å•è¯çš„è‹±æ–‡:\n%s: ", chinese);
 
         char answer[50];
         fgets(answer, sizeof(answer), stdin);
         trimNewline(answer);
 
-        // ¼ì²é´ğ°¸£¨ºöÂÔ´óĞ¡Ğ´£©
+        // æ£€æŸ¥ç­”æ¡ˆï¼ˆå¿½ç•¥å¤§å°å†™ï¼‰
         if (strcasecmp(answer, english) == 0) {
-            printf("ÕıÈ·£¡\n");
+            printf("æ­£ç¡®ï¼\n");
             correctIndices[correctCount++] = idx;
-            // ¼ÇÂ¼ÒÑÑ§¹ıµÄµ¥´Ê
+            // è®°å½•å·²å­¦è¿‡çš„å•è¯
             FILE *alreadyFile = fopen("already.txt", "a");
             if (alreadyFile != NULL) {
                 fprintf(alreadyFile, "%s %s\n", english, chinese);
                 fclose(alreadyFile);
             } else {
-                perror("ÎŞ·¨´ò¿ªalready.txt");
+                perror("æ— æ³•æ‰“å¼€already.txt");
             }
         } else {
-            printf("´íÎó¡£ÕıÈ·´ğ°¸ÊÇ: %s\n", english);
-            // Ôö¼Ó´íÎóµ¥´Ê¼ÆÊı
+            printf("é”™è¯¯ã€‚æ­£ç¡®ç­”æ¡ˆæ˜¯: %s\n", english);
+            // å¢åŠ é”™è¯¯å•è¯è®¡æ•°
             user->wrong_words += 1;
         }
 
-        // Ñ¯ÎÊÓÃ»§ÏÂÒ»²½²Ù×÷
+        // è¯¢é—®ç”¨æˆ·ä¸‹ä¸€æ­¥æ“ä½œ
         while (1) {
-            printf("\nÇëÑ¡Ôñ²Ù×÷:\n");
-            printf("1. ÏÂÒ»Ìâ\n");
-            printf("2. ÍË³ö¸´Ï°\n");
-            printf("ÇëÊäÈëÑ¡Ôñ: ");
+            printf("\nè¯·é€‰æ‹©æ“ä½œ:\n");
+            printf("1. ä¸‹ä¸€é¢˜\n");
+            printf("2. é€€å‡ºå¤ä¹ \n");
+            printf("è¯·è¾“å…¥é€‰æ‹©: ");
             int op;
             if (scanf("%d", &op) != 1) {
                 clearInputBuffer();
-                printf("ÎŞĞ§µÄÊäÈë£¬ÇëÊäÈëÊı×Ö¡£\n");
+                printf("æ— æ•ˆçš„è¾“å…¥ï¼Œè¯·è¾“å…¥æ•°å­—ã€‚\n");
                 continue;
             }
-            clearInputBuffer(); // Çå³ıÊäÈë»º³åÇø
+            clearInputBuffer(); // æ¸…é™¤è¾“å…¥ç¼“å†²åŒº
 
             if (op == 1) {
-                // ¼ÌĞøÏÂÒ»Ìâ
+                // ç»§ç»­ä¸‹ä¸€é¢˜
                 break;
             } else if (op == 2) {
-                printf("ÒÑÍË³ö´íÌâ¸´Ï°¡£\n");
-                // ±£´æÓÃ»§ºÍ¹ÜÀíÔ±Êı¾İ
+                printf("å·²é€€å‡ºé”™é¢˜å¤ä¹ ã€‚\n");
+                // ä¿å­˜ç”¨æˆ·å’Œç®¡ç†å‘˜æ•°æ®
                 if (saveAll() != 0) {
-                    printf("±£´æÓÃ»§Êı¾İÊ§°Ü¡£\n");
+                    printf("ä¿å­˜ç”¨æˆ·æ•°æ®å¤±è´¥ã€‚\n");
                 } else {
-                    printf("ÓÃ»§Êı¾İÒÑ¸üĞÂ¡£\n");
+                    printf("ç”¨æˆ·æ•°æ®å·²æ›´æ–°ã€‚\n");
                 }
-                // ÒÆ³ıÕıÈ·»Ø´ğµÄµ¥´Ê
+                // ç§»é™¤æ­£ç¡®å›ç­”çš„å•è¯
                 if (correctCount > 0) {
-                    // ´´½¨Ò»¸öĞÂµÄ´íÌâÊı×é£¬ÅÅ³ıÕıÈ·µÄµ¥´Ê
+                    // åˆ›å»ºä¸€ä¸ªæ–°çš„é”™é¢˜æ•°ç»„ï¼Œæ’é™¤æ­£ç¡®çš„å•è¯
                     char **newWrongWords = NULL;
                     int newWrongCount = 0;
                     for (int j = 0; j < wrongCount; j++) {
@@ -1316,22 +1389,22 @@ void wrongWordTraining(User *user) {
                         if (!toRemove) {
                             newWrongWords = (char **)realloc(newWrongWords, sizeof(char *) * (newWrongCount + 1));
                             if (newWrongWords == NULL) {
-                                perror("ÄÚ´æ·ÖÅäÊ§°Ü");
+                                perror("å†…å­˜åˆ†é…å¤±è´¥");
                                 break;
                             }
                             newWrongWords[newWrongCount] = strdup(wrongWords[j]);
                             if (newWrongWords[newWrongCount] == NULL) {
-                                perror("ÄÚ´æ·ÖÅäÊ§°Ü");
+                                perror("å†…å­˜åˆ†é…å¤±è´¥");
                                 break;
                             }
                             newWrongCount++;
                         }
                     }
 
-                    // ÖØĞÂĞ´Èëwrong.txt
+                    // é‡æ–°å†™å…¥wrong.txt
                     FILE *newWrongFile = fopen("wrong.txt", "w");
                     if (newWrongFile == NULL) {
-                        perror("ÎŞ·¨´ò¿ªwrong.txt½øĞĞĞ´Èë");
+                        perror("æ— æ³•æ‰“å¼€wrong.txtè¿›è¡Œå†™å…¥");
                     } else {
                         for (int j = 0; j < newWrongCount; j++) {
                             fprintf(newWrongFile, "%s\n", newWrongWords[j]);
@@ -1339,11 +1412,11 @@ void wrongWordTraining(User *user) {
                         }
                         fclose(newWrongFile);
                         free(newWrongWords);
-                        printf("ÒÑ¸üĞÂ´íÌâ±¾¡£\n");
+                        printf("å·²æ›´æ–°é”™é¢˜æœ¬ã€‚\n");
                     }
                 }
 
-                // ÊÍ·Å×ÊÔ´
+                // é‡Šæ”¾èµ„æº
                 free(indices);
                 free(correctIndices);
                 for (int j = 0; j < wrongCount; j++) {
@@ -1352,14 +1425,14 @@ void wrongWordTraining(User *user) {
                 free(wrongWords);
                 return;
             } else {
-                printf("ÎŞĞ§µÄÑ¡Ôñ£¬ÇëÖØĞÂÊäÈë¡£\n");
+                printf("æ— æ•ˆçš„é€‰æ‹©ï¼Œè¯·é‡æ–°è¾“å…¥ã€‚\n");
             }
         }
     }
 
-    // ÒÆ³ıÕıÈ·»Ø´ğµÄµ¥´Ê
+    // ç§»é™¤æ­£ç¡®å›ç­”çš„å•è¯
     if (correctCount > 0) {
-        // ´´½¨Ò»¸öĞÂµÄ´íÌâÊı×é£¬ÅÅ³ıÕıÈ·µÄµ¥´Ê
+        // åˆ›å»ºä¸€ä¸ªæ–°çš„é”™é¢˜æ•°ç»„ï¼Œæ’é™¤æ­£ç¡®çš„å•è¯
         char **newWrongWords = NULL;
         int newWrongCount = 0;
         for (int i = 0; i < wrongCount; i++) {
@@ -1373,22 +1446,22 @@ void wrongWordTraining(User *user) {
             if (!toRemove) {
                 newWrongWords = (char **)realloc(newWrongWords, sizeof(char *) * (newWrongCount + 1));
                 if (newWrongWords == NULL) {
-                    perror("ÄÚ´æ·ÖÅäÊ§°Ü");
+                    perror("å†…å­˜åˆ†é…å¤±è´¥");
                     break;
                 }
                 newWrongWords[newWrongCount] = strdup(wrongWords[i]);
                 if (newWrongWords[newWrongCount] == NULL) {
-                    perror("ÄÚ´æ·ÖÅäÊ§°Ü");
+                    perror("å†…å­˜åˆ†é…å¤±è´¥");
                     break;
                 }
                 newWrongCount++;
             }
         }
 
-        // ÖØĞÂĞ´Èëwrong.txt
+        // é‡æ–°å†™å…¥wrong.txt
         FILE *newWrongFile = fopen("wrong.txt", "w");
         if (newWrongFile == NULL) {
-            perror("ÎŞ·¨´ò¿ªwrong.txt½øĞĞĞ´Èë");
+            perror("æ— æ³•æ‰“å¼€wrong.txtè¿›è¡Œå†™å…¥");
         } else {
             for (int i = 0; i < newWrongCount; i++) {
                 fprintf(newWrongFile, "%s\n", newWrongWords[i]);
@@ -1396,13 +1469,13 @@ void wrongWordTraining(User *user) {
             }
             fclose(newWrongFile);
             free(newWrongWords);
-            printf("ÑµÁ·Íê³É£¬ÒÑ¸üĞÂ´íÌâ±¾¡£\n");
+            printf("è®­ç»ƒå®Œæˆï¼Œå·²æ›´æ–°é”™é¢˜æœ¬ã€‚\n");
         }
     } else {
-        printf("Ã»ÓĞÕıÈ·»Ø´ğµÄµ¥´Ê£¬ÎŞĞè¸üĞÂ´íÌâ±¾¡£\n");
+        printf("æ²¡æœ‰æ­£ç¡®å›ç­”çš„å•è¯ï¼Œæ— éœ€æ›´æ–°é”™é¢˜æœ¬ã€‚\n");
     }
 
-    // ÊÍ·Å×ÊÔ´
+    // é‡Šæ”¾èµ„æº
     free(indices);
     free(correctIndices);
     for (int i = 0; i < wrongCount; i++) {
@@ -1410,84 +1483,84 @@ void wrongWordTraining(User *user) {
     }
     free(wrongWords);
 
-    // ±£´æÓÃ»§ºÍ¹ÜÀíÔ±Êı¾İ
+    // ä¿å­˜ç”¨æˆ·å’Œç®¡ç†å‘˜æ•°æ®
     if (saveAll() != 0) {
-        printf("±£´æÓÃ»§Êı¾İÊ§°Ü¡£\n");
+        printf("ä¿å­˜ç”¨æˆ·æ•°æ®å¤±è´¥ã€‚\n");
     } else {
-        printf("´íÌâµ¥´ÊÑµÁ·Íê³É£¬ÓÃ»§Êı¾İÒÑ¸üĞÂ¡£\n");
+        printf("é”™é¢˜å•è¯è®­ç»ƒå®Œæˆï¼Œç”¨æˆ·æ•°æ®å·²æ›´æ–°ã€‚\n");
     }
 }
 
-// ËÑË÷¹¦ÄÜ
+// æœç´¢åŠŸèƒ½
 void searchWord() {
-    clearInputBuffer(); // Çå³ıÊäÈë»º³åÇø
+    clearInputBuffer(); // æ¸…é™¤è¾“å…¥ç¼“å†²åŒº
 
-    printf("\n=== µ¥´ÊËÑË÷ ===\n");
-    printf("ÇëÊäÈëÒªËÑË÷µÄÓ¢ÎÄµ¥´Ê: ");
+    printf("\n=== å•è¯æœç´¢ ===\n");
+    printf("è¯·è¾“å…¥è¦æœç´¢çš„è‹±æ–‡å•è¯: ");
     char search[50];
     fgets(search, sizeof(search), stdin);
     trimNewline(search);
 
-    // ±éÀúwordList²éÕÒ
+    // éå†wordListæŸ¥æ‰¾
     int found = 0;
     for (int i = 0; i < wordCount; i++) {
         if (strcasecmp(wordList[i].english, search) == 0) {
-            printf("µ¥´Ê: %s\nÖĞÎÄÒâË¼: %s\n", wordList[i].english, wordList[i].chinese);
+            printf("å•è¯: %s\nä¸­æ–‡æ„æ€: %s\n", wordList[i].english, wordList[i].chinese);
             found = 1;
             break;
         }
     }
 
     if (!found) {
-        printf("Î´ÕÒµ½µ¥´Ê '%s' µÄÖĞÎÄÒâË¼¡£\n", search);
+        printf("æœªæ‰¾åˆ°å•è¯ '%s' çš„ä¸­æ–‡æ„æ€ã€‚\n", search);
     }
 }
 
-// È¤Î¶ÌôÕ½Ä£Ê½¹¦ÄÜ£¬Ê¹ÓÃÁ½ÖÖÄ£Ê½
+// è¶£å‘³æŒ‘æˆ˜æ¨¡å¼åŠŸèƒ½ï¼Œä½¿ç”¨ä¸¤ç§æ¨¡å¼
 void challengeMode(User *user) {
     if (wordCount == 0) {
-        printf("µ¥´ÊÁĞ±íÎª¿Õ£¬ÎŞ·¨½øĞĞÌôÕ½Ä£Ê½¡£\n");
+        printf("å•è¯åˆ—è¡¨ä¸ºç©ºï¼Œæ— æ³•è¿›è¡ŒæŒ‘æˆ˜æ¨¡å¼ã€‚\n");
         return;
     }
 
-    printf("\n=== È¤Î¶ÌôÕ½Ä£Ê½ ===\n");
-    printf("ÇëÑ¡ÔñÌôÕ½Ä£Ê½:\n");
-    printf("1. ¸ù¾İÓ¢ÎÄĞ´ÖĞÎÄ\n");
-    printf("2. ¸ù¾İÖĞÎÄĞ´Ó¢ÎÄ\n");
-    printf("ÇëÊäÈëÑ¡Ôñ: ");
+    printf("\n=== è¶£å‘³æŒ‘æˆ˜æ¨¡å¼ ===\n");
+    printf("è¯·é€‰æ‹©æŒ‘æˆ˜æ¨¡å¼:\n");
+    printf("1. æ ¹æ®è‹±æ–‡å†™ä¸­æ–‡\n");
+    printf("2. æ ¹æ®ä¸­æ–‡å†™è‹±æ–‡\n");
+    printf("è¯·è¾“å…¥é€‰æ‹©: ");
 
     int mode;
     if (scanf("%d", &mode) != 1) {
         clearInputBuffer();
-        printf("ÎŞĞ§µÄÊäÈë£¬ÇëÊäÈëÊı×Ö¡£\n");
+        printf("æ— æ•ˆçš„è¾“å…¥ï¼Œè¯·è¾“å…¥æ•°å­—ã€‚\n");
         return;
     }
-    clearInputBuffer(); // Çå³ıÊäÈë»º³åÇø
+    clearInputBuffer(); // æ¸…é™¤è¾“å…¥ç¼“å†²åŒº
 
     if (mode < 1 || mode > 2) {
-        printf("ÎŞĞ§µÄÑ¡Ôñ£¬ÇëÖØĞÂÑ¡Ôñ¡£\n");
+        printf("æ— æ•ˆçš„é€‰æ‹©ï¼Œè¯·é‡æ–°é€‰æ‹©ã€‚\n");
         return;
     }
 
-    printf("ÄúÓĞ60ÃëµÄÊ±¼äÀ´Ä¬Ğ´¾¡¿ÉÄÜ¶àµÄµ¥´Ê¡£\n");
-    printf("Ã¿´ğ¶ÔÒ»¸öµ¥´Ê¼Ó10·Ö£¬´ğ´í¿Û5·Ö¡£\n");
-    printf("ÌôÕ½¼´½«¿ªÊ¼£¬×¼±¸ºÃÁËÂğ£¿°´»Ø³µ¼ü¿ªÊ¼...");
-    getchar(); // µÈ´ıÓÃ»§°´»Ø³µ
+    printf("æ‚¨æœ‰60ç§’çš„æ—¶é—´æ¥é»˜å†™å°½å¯èƒ½å¤šçš„å•è¯ã€‚\n");
+    printf("æ¯ç­”å¯¹ä¸€ä¸ªå•è¯åŠ 10åˆ†ï¼Œç­”é”™æ‰£5åˆ†ã€‚\n");
+    printf("æŒ‘æˆ˜å³å°†å¼€å§‹ï¼Œå‡†å¤‡å¥½äº†å—ï¼ŸæŒ‰å›è½¦é”®å¼€å§‹...");
+    getchar(); // ç­‰å¾…ç”¨æˆ·æŒ‰å›è½¦
 
     int score = 0;
     time_t start_time = time(NULL);
     time_t current_time;
 
-    // Éú³ÉÒ»¸öËæ»úĞòÁĞÒÔ±ÜÃâÖØ¸´
+    // ç”Ÿæˆä¸€ä¸ªéšæœºåºåˆ—ä»¥é¿å…é‡å¤
     int *sequence = (int *)malloc(sizeof(int) * wordCount);
     if (sequence == NULL) {
-        perror("ÄÚ´æ·ÖÅäÊ§°Ü");
+        perror("å†…å­˜åˆ†é…å¤±è´¥");
         return;
     }
     for (int i = 0; i < wordCount; i++) {
         sequence[i] = i;
     }
-    // ´òÂÒĞòÁĞ
+    // æ‰“ä¹±åºåˆ—
     for (int i = wordCount - 1; i > 0; i--) {
         int j = rand() % (i + 1);
         int temp = sequence[i];
@@ -1500,16 +1573,16 @@ void challengeMode(User *user) {
         current_time = time(NULL);
         double elapsed = difftime(current_time, start_time);
         if (elapsed >= 60.0) {
-            printf("\nÊ±¼äµ½£¡ÌôÕ½½áÊø¡£\n");
+            printf("\næ—¶é—´åˆ°ï¼æŒ‘æˆ˜ç»“æŸã€‚\n");
             break;
         }
 
         if (index >= wordCount) {
-            // Èç¹ûËùÓĞµ¥´Ê¶¼ÒÑ¾­ÌôÕ½¹ı£¬ÖØĞÂ´òÂÒ
+            // å¦‚æœæ‰€æœ‰å•è¯éƒ½å·²ç»æŒ‘æˆ˜è¿‡ï¼Œé‡æ–°æ‰“ä¹±
             for (int i = 0; i < wordCount; i++) {
                 sequence[i] = i;
             }
-            // ´òÂÒĞòÁĞ
+            // æ‰“ä¹±åºåˆ—
             for (int i = wordCount - 1; i > 0; i--) {
                 int j = rand() % (i + 1);
                 int temp = sequence[i];
@@ -1525,15 +1598,15 @@ void challengeMode(User *user) {
         char prompt[100];
 
         if (mode == 1) {
-            // ¸ù¾İÓ¢ÎÄĞ´ÖĞÎÄ
+            // æ ¹æ®è‹±æ–‡å†™ä¸­æ–‡
             strcpy(question, wordList[word_idx].english);
             strcpy(correctAnswer, wordList[word_idx].chinese);
-            snprintf(prompt, sizeof(prompt), "ÇëĞ´³öÒÔÏÂÓ¢ÎÄµ¥´ÊµÄÖĞÎÄ:\n%s: ", question);
+            snprintf(prompt, sizeof(prompt), "è¯·å†™å‡ºä»¥ä¸‹è‹±æ–‡å•è¯çš„ä¸­æ–‡:\n%s: ", question);
         } else {
-            // ¸ù¾İÖĞÎÄĞ´Ó¢ÎÄ
+            // æ ¹æ®ä¸­æ–‡å†™è‹±æ–‡
             strcpy(question, wordList[word_idx].chinese);
             strcpy(correctAnswer, wordList[word_idx].english);
-            snprintf(prompt, sizeof(prompt), "ÇëĞ´³öÒÔÏÂÖĞÎÄµ¥´ÊµÄÓ¢ÎÄ:\n%s: ", question);
+            snprintf(prompt, sizeof(prompt), "è¯·å†™å‡ºä»¥ä¸‹ä¸­æ–‡å•è¯çš„è‹±æ–‡:\n%s: ", question);
         }
 
         printf("\n%s", prompt);
@@ -1542,69 +1615,69 @@ void challengeMode(User *user) {
         fgets(answer, sizeof(answer), stdin);
         trimNewline(answer);
 
-        // ¼ì²é´ğ°¸£¨ºöÂÔ´óĞ¡Ğ´£©
+        // æ£€æŸ¥ç­”æ¡ˆï¼ˆå¿½ç•¥å¤§å°å†™ï¼‰
         if (strcasecmp(answer, correctAnswer) == 0) {
-            printf("ÕıÈ·£¡+10·Ö\n");
+            printf("æ­£ç¡®ï¼+10åˆ†\n");
             score += 10;
-            // ¼ÇÂ¼ÒÑÑ§¹ıµÄµ¥´Ê
+            // è®°å½•å·²å­¦è¿‡çš„å•è¯
             FILE *alreadyFile = fopen("already.txt", "a");
             if (alreadyFile != NULL) {
                 fprintf(alreadyFile, "%s %s\n", wordList[word_idx].english, wordList[word_idx].chinese);
                 fclose(alreadyFile);
             } else {
-                perror("ÎŞ·¨´ò¿ªalready.txt");
+                perror("æ— æ³•æ‰“å¼€already.txt");
             }
         } else {
-            printf("´íÎó¡£ÕıÈ·´ğ°¸ÊÇ: %s¡£-5·Ö\n", correctAnswer);
+            printf("é”™è¯¯ã€‚æ­£ç¡®ç­”æ¡ˆæ˜¯: %sã€‚-5åˆ†\n", correctAnswer);
             score -= 5;
-            if (score < 0) score = 0; // ·ÀÖ¹·ÖÊıÎª¸º
-            // ¼ÇÂ¼´íÎóµÄµ¥´Ê
+            if (score < 0) score = 0; // é˜²æ­¢åˆ†æ•°ä¸ºè´Ÿ
+            // è®°å½•é”™è¯¯çš„å•è¯
             user->wrong_words += 1;
             FILE *wrongFile = fopen("wrong.txt", "a");
             if (wrongFile != NULL) {
                 fprintf(wrongFile, "%s %s\n", wordList[word_idx].english, wordList[word_idx].chinese);
                 fclose(wrongFile);
             } else {
-                perror("ÎŞ·¨´ò¿ªwrong.txt");
+                perror("æ— æ³•æ‰“å¼€wrong.txt");
             }
         }
     }
 
     free(sequence);
 
-    // ±£´æÓÃ»§ºÍ¹ÜÀíÔ±Êı¾İ
+    // ä¿å­˜ç”¨æˆ·å’Œç®¡ç†å‘˜æ•°æ®
     if (saveAll() != 0) {
-        printf("±£´æÓÃ»§Êı¾İÊ§°Ü¡£\n");
+        printf("ä¿å­˜ç”¨æˆ·æ•°æ®å¤±è´¥ã€‚\n");
     }
 
-    // ½«ĞÕÃûºÍ·ÖÊı´æÈërank.txt
+    // å°†å§“åå’Œåˆ†æ•°å­˜å…¥rank.txt
     FILE *rankFile = fopen("rank.txt", "a");
     if (rankFile == NULL) {
-        perror("ÎŞ·¨´ò¿ªrank.txt");
+        perror("æ— æ³•æ‰“å¼€rank.txt");
     } else {
         fprintf(rankFile, "%s,%d\n", user->name, score);
         fclose(rankFile);
     }
 
-    printf("ÄúµÄµÃ·Ö: %d\n", score);
+    printf("æ‚¨çš„å¾—åˆ†: %d\n", score);
 }
 
-// ±È½Ïº¯ÊıÓÃÓÚqsort
+// æ¯”è¾ƒå‡½æ•°ç”¨äºqsort
 int compareRankEntries(const void *a, const void *b) {
     RankEntry *entryA = (RankEntry *)a;
     RankEntry *entryB = (RankEntry *)b;
-    return entryB->score - entryA->score; // ´Ó¸ßµ½µÍÅÅĞò
+    return entryB->score - entryA->score; // ä»é«˜åˆ°ä½æ’åº
 }
 
-// ÅÅĞĞ°ñ¹¦ÄÜ
+// æ’è¡Œæ¦œåŠŸèƒ½
 void displayRanking() {
     FILE *file = fopen("rank.txt", "r");
     if (file == NULL) {
-        printf("ÅÅĞĞ°ñÎÄ¼ş²»´æÔÚ¡£\n");
+        printf("æ’è¡Œæ¦œæ–‡ä»¶ä¸å­˜åœ¨ã€‚\n");
         return;
     }
 
-    // ¶ÁÈ¡ÅÅĞĞ°ñÊı¾İ
+    // è¯»å–æ’è¡Œæ¦œæ•°æ®
     RankEntry *entries = NULL;
     int entryCount = 0;
     char line[256];
@@ -1612,7 +1685,7 @@ void displayRanking() {
         trimNewline(line);
         if (strlen(line) == 0) continue;
 
-        // ·Ö¸îĞÕÃûºÍ·ÖÊı
+        // åˆ†å‰²å§“åå’Œåˆ†æ•°
         char *token = strtok(line, ",");
         if (token == NULL) continue;
         char *name = token;
@@ -1621,10 +1694,10 @@ void displayRanking() {
         if (token == NULL) continue;
         int score = atoi(token);
 
-        // Ìí¼Óµ½ÅÅĞĞ°ñÊı×é
+        // æ·»åŠ åˆ°æ’è¡Œæ¦œæ•°ç»„
         entries = (RankEntry *)realloc(entries, sizeof(RankEntry) * (entryCount + 1));
         if (entries == NULL) {
-            perror("ÄÚ´æ·ÖÅäÊ§°Ü");
+            perror("å†…å­˜åˆ†é…å¤±è´¥");
             fclose(file);
             return;
         }
@@ -1635,57 +1708,57 @@ void displayRanking() {
     fclose(file);
 
     if (entryCount == 0) {
-        printf("ÅÅĞĞ°ñÎª¿Õ¡£\n");
+        printf("æ’è¡Œæ¦œä¸ºç©ºã€‚\n");
         free(entries);
         return;
     }
 
-    // °´·ÖÊı´Ó¸ßµ½µÍÅÅĞò
+    // æŒ‰åˆ†æ•°ä»é«˜åˆ°ä½æ’åº
     qsort(entries, entryCount, sizeof(RankEntry), compareRankEntries);
 
-    // ÏÔÊ¾ÅÅĞĞ°ñ
-    printf("\n=== ÅÅĞĞ°ñ ===\n");
-    printf("%-5s %-20s %-10s\n", "ÅÅÃû", "ĞÕÃû", "·ÖÊı");
-    for (int i = 0; i < entryCount && i < 10; i++) { // ÏÔÊ¾Ç°10Ãû
+    // æ˜¾ç¤ºæ’è¡Œæ¦œ
+    printf("\n=== æ’è¡Œæ¦œ ===\n");
+    printf("%-5s %-20s %-10s\n", "æ’å", "å§“å", "åˆ†æ•°");
+    for (int i = 0; i < entryCount && i < 10; i++) { // æ˜¾ç¤ºå‰10å
         printf("%-5d %-20s %-10d\n", i + 1, entries[i].name, entries[i].score);
     }
 
     free(entries);
 }
 
-// ä¯ÀÀÓÃ»§ĞÅÏ¢£¨¹ÜÀíÔ±¹¦ÄÜ£©
+// æµè§ˆç”¨æˆ·ä¿¡æ¯ï¼ˆç®¡ç†å‘˜åŠŸèƒ½ï¼‰
 void browseUsers() {
-    printf("\n=== ÓÃ»§ĞÅÏ¢ÁĞ±í ===\n");
+    printf("\n=== ç”¨æˆ·ä¿¡æ¯åˆ—è¡¨ ===\n");
     User *current = head;
     int count = 0;
     while (current != NULL) {
-        if (!current->isAdmin) { // ½öÏÔÊ¾ÆÕÍ¨ÓÃ»§
-            printf("\n--- ÓÃ»§ %d ---\n", ++count);
-            printf("ĞÕÃû: %s\n", current->name);
-            printf("ÓÃ»§Ãû: %s\n", current->username);
-            printf("´ò¿¨ÌìÊı: %d\n", current->checkin_days);
-            printf("×Ü¼Æ±³ÁË¶àÉÙµ¥´Ê: %d\n", current->total_words);
-            printf("´íÌâÊı: %d\n", current->wrong_words);
-            printf("ÕıÈ·ÂÊ: %.2f%%\n", current->correct_rate);
-            printf("ÉÏÒ»´Î´ò¿¨Ê±¼ä: %s\n", current->last_checkin_time);
+        if (!current->isAdmin) { // ä»…æ˜¾ç¤ºæ™®é€šç”¨æˆ·
+            printf("\n--- ç”¨æˆ· %d ---\n", ++count);
+            printf("å§“å: %s\n", current->name);
+            printf("ç”¨æˆ·å: %s\n", current->username);
+            printf("æ‰“å¡å¤©æ•°: %d\n", current->checkin_days);
+            printf("æ€»è®¡èƒŒäº†å¤šå°‘å•è¯: %d\n", current->total_words);
+            printf("é”™é¢˜æ•°: %d\n", current->wrong_words);
+            printf("æ­£ç¡®ç‡: %.2f%%\n", current->correct_rate);
+            printf("ä¸Šä¸€æ¬¡æ‰“å¡æ—¶é—´: %s\n", current->last_checkin_time);
         }
         current = current->next;
     }
 
     if (count == 0) {
-        printf("µ±Ç°Ã»ÓĞÆÕÍ¨ÓÃ»§¡£\n");
+        printf("å½“å‰æ²¡æœ‰æ™®é€šç”¨æˆ·ã€‚\n");
     }
 }
 
-// É¾³ıÓÃ»§¹¦ÄÜ£¨¹ÜÀíÔ±£©
+// åˆ é™¤ç”¨æˆ·åŠŸèƒ½ï¼ˆç®¡ç†å‘˜ï¼‰
 void deleteUser() {
     char usernameToDelete[50];
-    printf("\nÇëÊäÈëÒªÉ¾³ıµÄÓÃ»§Ãû: ");
+    printf("\nè¯·è¾“å…¥è¦åˆ é™¤çš„ç”¨æˆ·å: ");
     fgets(usernameToDelete, sizeof(usernameToDelete), stdin);
     trimNewline(usernameToDelete);
 
     if (strlen(usernameToDelete) == 0) {
-        printf("ÓÃ»§Ãû²»ÄÜÎª¿Õ¡£\n");
+        printf("ç”¨æˆ·åä¸èƒ½ä¸ºç©ºã€‚\n");
         return;
     }
 
@@ -1695,21 +1768,21 @@ void deleteUser() {
     while (current != NULL) {
         if (strcmp(current->username, usernameToDelete) == 0) {
             if (current->isAdmin) {
-                printf("ÎŞ·¨É¾³ı¹ÜÀíÔ±ÓÃ»§¡£\n");
+                printf("æ— æ³•åˆ é™¤ç®¡ç†å‘˜ç”¨æˆ·ã€‚\n");
                 return;
             }
-            // ÕÒµ½ÒªÉ¾³ıµÄÓÃ»§
+            // æ‰¾åˆ°è¦åˆ é™¤çš„ç”¨æˆ·
             if (previous == NULL) {
-                // É¾³ıÍ·½Úµã
+                // åˆ é™¤å¤´èŠ‚ç‚¹
                 head = current->next;
             } else {
                 previous->next = current->next;
             }
             free(current);
-            printf("ÓÃ»§ '%s' ÒÑ³É¹¦É¾³ı¡£\n", usernameToDelete);
-            // ±£´æËùÓĞÓÃ»§
+            printf("ç”¨æˆ· '%s' å·²æˆåŠŸåˆ é™¤ã€‚\n", usernameToDelete);
+            // ä¿å­˜æ‰€æœ‰ç”¨æˆ·
             if (saveAllUsers() != 0) {
-                printf("É¾³ıÓÃ»§ºó£¬±£´æÓÃ»§Êı¾İÊ§°Ü¡£\n");
+                printf("åˆ é™¤ç”¨æˆ·åï¼Œä¿å­˜ç”¨æˆ·æ•°æ®å¤±è´¥ã€‚\n");
             }
             return;
         }
@@ -1717,58 +1790,58 @@ void deleteUser() {
         current = current->next;
     }
 
-    printf("Î´ÕÒµ½ÓÃ»§ÃûÎª '%s' µÄÓÃ»§¡£\n", usernameToDelete);
+    printf("æœªæ‰¾åˆ°ç”¨æˆ·åä¸º '%s' çš„ç”¨æˆ·ã€‚\n", usernameToDelete);
 }
 
-// ¹ÜÀíÔ±²Ëµ¥
+// ç®¡ç†å‘˜èœå•
 void adminMenu(User *adminUser) {
     int choice;
     while (1) {
-        printf("\n=== ¹ÜÀíÔ±²Ëµ¥ ===\n");
-        printf("1. ÓÃ»§¹ÜÀí\n");
-        printf("2. ¹ÜÀíÌâ¿â\n");
-        printf("3. ·µ»ØÖ÷²Ëµ¥\n");
-        printf("ÇëÊäÈëÑ¡Ôñ: ");
+        printf("\n=== ç®¡ç†å‘˜èœå• ===\n");
+        printf("1. ç”¨æˆ·ç®¡ç†\n");
+        printf("2. ç®¡ç†é¢˜åº“\n");
+        printf("3. è¿”å›ä¸»èœå•\n");
+        printf("è¯·è¾“å…¥é€‰æ‹©: ");
 
         if (scanf("%d", &choice) != 1) {
             clearInputBuffer();
-            printf("ÎŞĞ§µÄÊäÈë£¬ÇëÊäÈëÊı×Ö¡£\n");
+            printf("æ— æ•ˆçš„è¾“å…¥ï¼Œè¯·è¾“å…¥æ•°å­—ã€‚\n");
             continue;
         }
-        clearInputBuffer(); // Çå³ıÊäÈë»º³åÇø
+        clearInputBuffer(); // æ¸…é™¤è¾“å…¥ç¼“å†²åŒº
 
         switch (choice) {
         case 1:
-            // ÓÃ»§¹ÜÀí×Ó²Ëµ¥
+            // ç”¨æˆ·ç®¡ç†å­èœå•
             {
                 int userChoice;
                 while (1) {
-                    printf("\n=== ÓÃ»§¹ÜÀí ===\n");
-                    printf("1. ä¯ÀÀËùÓĞÓÃ»§\n");
-                    printf("2. É¾³ıÓÃ»§\n");
-                    printf("3. ·µ»Ø¹ÜÀíÔ±²Ëµ¥\n");
-                    printf("ÇëÊäÈëÑ¡Ôñ: ");
+                    printf("\n=== ç”¨æˆ·ç®¡ç† ===\n");
+                    printf("1. æµè§ˆæ‰€æœ‰ç”¨æˆ·\n");
+                    printf("2. åˆ é™¤ç”¨æˆ·\n");
+                    printf("3. è¿”å›ç®¡ç†å‘˜èœå•\n");
+                    printf("è¯·è¾“å…¥é€‰æ‹©: ");
 
                     if (scanf("%d", &userChoice) != 1) {
                         clearInputBuffer();
-                        printf("ÎŞĞ§µÄÊäÈë£¬ÇëÊäÈëÊı×Ö¡£\n");
+                        printf("æ— æ•ˆçš„è¾“å…¥ï¼Œè¯·è¾“å…¥æ•°å­—ã€‚\n");
                         continue;
                     }
-                    clearInputBuffer(); // Çå³ıÊäÈë»º³åÇø
+                    clearInputBuffer(); // æ¸…é™¤è¾“å…¥ç¼“å†²åŒº
 
                     switch (userChoice) {
                     case 1:
                         browseUsers();
                         break;
                     case 2:
-                        // µ÷ÓÃÉ¾³ıÓÃ»§¹¦ÄÜ
+                        // è°ƒç”¨åˆ é™¤ç”¨æˆ·åŠŸèƒ½
                         deleteUser();
                         break;
                     case 3:
-                        // ·µ»Ø¹ÜÀíÔ±²Ëµ¥
+                        // è¿”å›ç®¡ç†å‘˜èœå•
                         goto admin_menu_end;
                     default:
-                        printf("ÎŞĞ§µÄÑ¡Ôñ£¬ÇëÖØĞÂÊäÈë¡£\n");
+                        printf("æ— æ•ˆçš„é€‰æ‹©ï¼Œè¯·é‡æ–°è¾“å…¥ã€‚\n");
                     }
                 }
             }
@@ -1778,32 +1851,32 @@ void adminMenu(User *adminUser) {
             manageWordLibraries();
             break;
         case 3:
-            printf("·µ»ØÖ÷²Ëµ¥¡£\n");
+            printf("è¿”å›ä¸»èœå•ã€‚\n");
             return;
         default:
-            printf("ÎŞĞ§µÄÑ¡Ôñ£¬ÇëÖØĞÂÊäÈë¡£\n");
+            printf("æ— æ•ˆçš„é€‰æ‹©ï¼Œè¯·é‡æ–°è¾“å…¥ã€‚\n");
         }
     }
 }
 
-// ¹ÜÀíÌâ¿â¹¦ÄÜ
+// ç®¡ç†é¢˜åº“åŠŸèƒ½
 void manageWordLibraries() {
     int choice;
     while (1) {
-        printf("\n=== Ìâ¿â¹ÜÀí²Ëµ¥ ===\n");
-        printf("1. ÁĞ³öËùÓĞÌâ¿â\n");
-        printf("2. Ìí¼ÓĞÂµÄÌâ¿â\n");
-        printf("3. É¾³ıÏÖÓĞÌâ¿â\n");
-        printf("4. ¹ÜÀíµ¥¸öÌâ¿âÖĞµÄµ¥´Ê\n");
-        printf("5. ·µ»Ø¹ÜÀíÔ±²Ëµ¥\n");
-        printf("ÇëÊäÈëÑ¡Ôñ: ");
+        printf("\n=== é¢˜åº“ç®¡ç†èœå• ===\n");
+        printf("1. åˆ—å‡ºæ‰€æœ‰é¢˜åº“\n");
+        printf("2. æ·»åŠ æ–°çš„é¢˜åº“\n");
+        printf("3. åˆ é™¤ç°æœ‰é¢˜åº“\n");
+        printf("4. ç®¡ç†å•ä¸ªé¢˜åº“ä¸­çš„å•è¯\n");
+        printf("5. è¿”å›ç®¡ç†å‘˜èœå•\n");
+        printf("è¯·è¾“å…¥é€‰æ‹©: ");
 
         if (scanf("%d", &choice) != 1) {
             clearInputBuffer();
-            printf("ÎŞĞ§µÄÊäÈë£¬ÇëÊäÈëÊı×Ö¡£\n");
+            printf("æ— æ•ˆçš„è¾“å…¥ï¼Œè¯·è¾“å…¥æ•°å­—ã€‚\n");
             continue;
         }
-        clearInputBuffer(); // Çå³ıÊäÈë»º³åÇø
+        clearInputBuffer(); // æ¸…é™¤è¾“å…¥ç¼“å†²åŒº
 
         switch (choice) {
         case 1:
@@ -1821,12 +1894,12 @@ void manageWordLibraries() {
         case 5:
             return;
         default:
-            printf("ÎŞĞ§µÄÑ¡Ôñ£¬ÇëÖØĞÂÊäÈë¡£\n");
+            printf("æ— æ•ˆçš„é€‰æ‹©ï¼Œè¯·é‡æ–°è¾“å…¥ã€‚\n");
         }
     }
 }
 
-// ÁĞ³öËùÓĞÌâ¿â
+// åˆ—å‡ºæ‰€æœ‰é¢˜åº“
 void listWordLibraries() {
 #ifdef _WIN32
     WIN32_FIND_DATA findFileData;
@@ -1837,10 +1910,10 @@ void listWordLibraries() {
     hFind = FindFirstFile(searchPath, &findFileData);
 
     if (hFind == INVALID_HANDLE_VALUE) {
-        printf("ÎŞ·¨´ò¿ª word_libraries Ä¿Â¼»òÄ¿Â¼Îª¿Õ¡£\n");
+        printf("æ— æ³•æ‰“å¼€ word_libraries ç›®å½•æˆ–ç›®å½•ä¸ºç©ºã€‚\n");
         return;
     } else {
-        printf("\n=== µ±Ç°Ìâ¿âÁĞ±í ===\n");
+        printf("\n=== å½“å‰é¢˜åº“åˆ—è¡¨ ===\n");
         int count = 0;
         do {
             const char *name = findFileData.cFileName;
@@ -1851,7 +1924,7 @@ void listWordLibraries() {
 
         FindClose(hFind);
         if (count == 0) {
-            printf("µ±Ç°Ã»ÓĞÈÎºÎÌâ¿â¡£\n");
+            printf("å½“å‰æ²¡æœ‰ä»»ä½•é¢˜åº“ã€‚\n");
         }
     }
 #else
@@ -1859,39 +1932,39 @@ void listWordLibraries() {
     struct dirent *dir;
     d = opendir("word_libraries");
     if (d) {
-        printf("\n=== µ±Ç°Ìâ¿âÁĞ±í ===\n");
+        printf("\n=== å½“å‰é¢˜åº“åˆ—è¡¨ ===\n");
         int count = 0;
         while ((dir = readdir(d)) != NULL) {
-            // ÅÅ³ı "." ºÍ ".."
+            // æ’é™¤ "." å’Œ ".."
             if (strcmp(dir->d_name, ".") == 0 || strcmp(dir->d_name, "..") == 0)
                 continue;
             printf("%d. %s\n", ++count, dir->d_name);
         }
         closedir(d);
         if (count == 0) {
-            printf("µ±Ç°Ã»ÓĞÈÎºÎÌâ¿â¡£\n");
+            printf("å½“å‰æ²¡æœ‰ä»»ä½•é¢˜åº“ã€‚\n");
         }
     } else {
-        perror("ÎŞ·¨´ò¿ª word_libraries Ä¿Â¼");
+        perror("æ— æ³•æ‰“å¼€ word_libraries ç›®å½•");
     }
 #endif
 }
 
-// Ìí¼ÓĞÂµÄÌâ¿â
+// æ·»åŠ æ–°çš„é¢˜åº“
 void addWordLibrary() {
-    clearInputBuffer(); // Çå³ıÊäÈë»º³åÇø
+    clearInputBuffer(); // æ¸…é™¤è¾“å…¥ç¼“å†²åŒº
     char libraryName[100];
-    printf("\nÇëÊäÈëĞÂÌâ¿âµÄÃû³Æ (ÀıÈç: new_library.txt): ");
+    printf("\nè¯·è¾“å…¥æ–°é¢˜åº“çš„åç§° (ä¾‹å¦‚: new_library.txt): ");
     fgets(libraryName, sizeof(libraryName), stdin);
     trimNewline(libraryName);
 
-    // ¼ì²éÎÄ¼şÃûÊÇ·ñºÏ·¨
+    // æ£€æŸ¥æ–‡ä»¶åæ˜¯å¦åˆæ³•
     if (strlen(libraryName) == 0) {
-        printf("Ìâ¿âÃû³Æ²»ÄÜÎª¿Õ¡£\n");
+        printf("é¢˜åº“åç§°ä¸èƒ½ä¸ºç©ºã€‚\n");
         return;
     }
 
-    // ¼ì²éÎÄ¼şÊÇ·ñÒÑ¾­´æÔÚ
+    // æ£€æŸ¥æ–‡ä»¶æ˜¯å¦å·²ç»å­˜åœ¨
     char filepath[150];
 #ifdef _WIN32
     snprintf(filepath, sizeof(filepath), "word_libraries\\%s", libraryName);
@@ -1900,30 +1973,30 @@ void addWordLibrary() {
 #endif
     FILE *file = fopen(filepath, "r");
     if (file != NULL) {
-        printf("Ìâ¿â '%s' ÒÑ´æÔÚ¡£\n", libraryName);
+        printf("é¢˜åº“ '%s' å·²å­˜åœ¨ã€‚\n", libraryName);
         fclose(file);
         return;
     }
 
-    // ´´½¨ĞÂµÄÌâ¿âÎÄ¼ş
+    // åˆ›å»ºæ–°çš„é¢˜åº“æ–‡ä»¶
     file = fopen(filepath, "w");
     if (file == NULL) {
-        perror("ÎŞ·¨´´½¨ĞÂµÄÌâ¿âÎÄ¼ş");
+        perror("æ— æ³•åˆ›å»ºæ–°çš„é¢˜åº“æ–‡ä»¶");
         return;
     }
     fclose(file);
-    printf("Ìâ¿â '%s' ´´½¨³É¹¦¡£\n", libraryName);
+    printf("é¢˜åº“ '%s' åˆ›å»ºæˆåŠŸã€‚\n", libraryName);
 }
 
-// É¾³ıÏÖÓĞÌâ¿â
+// åˆ é™¤ç°æœ‰é¢˜åº“
 void deleteWordLibrary() {
-    clearInputBuffer(); // Çå³ıÊäÈë»º³åÇø
+    clearInputBuffer(); // æ¸…é™¤è¾“å…¥ç¼“å†²åŒº
     char libraryName[100];
-    printf("\nÇëÊäÈëÒªÉ¾³ıµÄÌâ¿âÃû³Æ (ÀıÈç: new_library.txt): ");
+    printf("\nè¯·è¾“å…¥è¦åˆ é™¤çš„é¢˜åº“åç§° (ä¾‹å¦‚: new_library.txt): ");
     fgets(libraryName, sizeof(libraryName), stdin);
     trimNewline(libraryName);
 
-    // ¼ì²éÎÄ¼şÊÇ·ñ´æÔÚ
+    // æ£€æŸ¥æ–‡ä»¶æ˜¯å¦å­˜åœ¨
     char filepath[150];
 #ifdef _WIN32
     snprintf(filepath, sizeof(filepath), "word_libraries\\%s", libraryName);
@@ -1932,44 +2005,44 @@ void deleteWordLibrary() {
 #endif
     FILE *file = fopen(filepath, "r");
     if (file == NULL) {
-        printf("Ìâ¿â '%s' ²»´æÔÚ¡£\n", libraryName);
+        printf("é¢˜åº“ '%s' ä¸å­˜åœ¨ã€‚\n", libraryName);
         return;
     }
     fclose(file);
 
-    // È·ÈÏÉ¾³ı
-    printf("È·¶¨ÒªÉ¾³ıÌâ¿â '%s' Âğ£¿ (y/n): ", libraryName);
+    // ç¡®è®¤åˆ é™¤
+    printf("ç¡®å®šè¦åˆ é™¤é¢˜åº“ '%s' å—ï¼Ÿ (y/n): ", libraryName);
     char confirm;
     scanf(" %c", &confirm);
-    clearInputBuffer(); // Çå³ıÊäÈë»º³åÇø
+    clearInputBuffer(); // æ¸…é™¤è¾“å…¥ç¼“å†²åŒº
     if (confirm == 'y' || confirm == 'Y') {
 #ifdef _WIN32
         if (remove(filepath) == 0) {
-            printf("Ìâ¿â '%s' É¾³ı³É¹¦¡£\n", libraryName);
+            printf("é¢˜åº“ '%s' åˆ é™¤æˆåŠŸã€‚\n", libraryName);
         } else {
-            perror("É¾³ıÌâ¿âÊ§°Ü");
+            perror("åˆ é™¤é¢˜åº“å¤±è´¥");
         }
 #else
         if (remove(filepath) == 0) {
-            printf("Ìâ¿â '%s' É¾³ı³É¹¦¡£\n", libraryName);
+            printf("é¢˜åº“ '%s' åˆ é™¤æˆåŠŸã€‚\n", libraryName);
         } else {
-            perror("É¾³ıÌâ¿âÊ§°Ü");
+            perror("åˆ é™¤é¢˜åº“å¤±è´¥");
         }
 #endif
     } else {
-        printf("È¡ÏûÉ¾³ı¡£\n");
+        printf("å–æ¶ˆåˆ é™¤ã€‚\n");
     }
 }
 
-// ¹ÜÀíµ¥¸öÌâ¿âÖĞµÄµ¥´Ê
+// ç®¡ç†å•ä¸ªé¢˜åº“ä¸­çš„å•è¯
 void manageSingleWordLibrary() {
-    clearInputBuffer(); // Çå³ıÊäÈë»º³åÇø
+    clearInputBuffer(); // æ¸…é™¤è¾“å…¥ç¼“å†²åŒº
     char libraryName[100];
-    printf("\nÇëÊäÈëÒª¹ÜÀíµÄÌâ¿âÃû³Æ (ÀıÈç: new_library.txt): ");
+    printf("\nè¯·è¾“å…¥è¦ç®¡ç†çš„é¢˜åº“åç§° (ä¾‹å¦‚: new_library.txt): ");
     fgets(libraryName, sizeof(libraryName), stdin);
     trimNewline(libraryName);
 
-    // ¼ì²éÎÄ¼şÊÇ·ñ´æÔÚ
+    // æ£€æŸ¥æ–‡ä»¶æ˜¯å¦å­˜åœ¨
     char filepath[150];
 #ifdef _WIN32
     snprintf(filepath, sizeof(filepath), "word_libraries\\%s", libraryName);
@@ -1978,34 +2051,34 @@ void manageSingleWordLibrary() {
 #endif
     FILE *file = fopen(filepath, "r+");
     if (file == NULL) {
-        printf("Ìâ¿â '%s' ²»´æÔÚ¡£\n", libraryName);
+        printf("é¢˜åº“ '%s' ä¸å­˜åœ¨ã€‚\n", libraryName);
         return;
     }
     fclose(file);
 
     int choice;
     while (1) {
-        printf("\n=== ¹ÜÀíÌâ¿â '%s' ===\n", libraryName);
-        printf("1. ÁĞ³öËùÓĞµ¥´Ê\n");
-        printf("2. Ìí¼ÓĞÂµ¥´Ê\n");
-        printf("3. É¾³ıµ¥´Ê\n");
-        printf("4. ·µ»ØÌâ¿â¹ÜÀí²Ëµ¥\n");
-        printf("ÇëÊäÈëÑ¡Ôñ: ");
+        printf("\n=== ç®¡ç†é¢˜åº“ '%s' ===\n", libraryName);
+        printf("1. åˆ—å‡ºæ‰€æœ‰å•è¯\n");
+        printf("2. æ·»åŠ æ–°å•è¯\n");
+        printf("3. åˆ é™¤å•è¯\n");
+        printf("4. è¿”å›é¢˜åº“ç®¡ç†èœå•\n");
+        printf("è¯·è¾“å…¥é€‰æ‹©: ");
 
         if (scanf("%d", &choice) != 1) {
             clearInputBuffer();
-            printf("ÎŞĞ§µÄÊäÈë£¬ÇëÊäÈëÊı×Ö¡£\n");
+            printf("æ— æ•ˆçš„è¾“å…¥ï¼Œè¯·è¾“å…¥æ•°å­—ã€‚\n");
             continue;
         }
-        clearInputBuffer(); // Çå³ıÊäÈë»º³åÇø
+        clearInputBuffer(); // æ¸…é™¤è¾“å…¥ç¼“å†²åŒº
 
         switch (choice) {
         case 1:
-            // ÁĞ³öËùÓĞµ¥´Ê
-            printf("\n=== µ¥´ÊÁĞ±í ===\n");
+            // åˆ—å‡ºæ‰€æœ‰å•è¯
+            printf("\n=== å•è¯åˆ—è¡¨ ===\n");
             file = fopen(filepath, "r");
             if (file == NULL) {
-                perror("ÎŞ·¨´ò¿ªÌâ¿âÎÄ¼ş");
+                perror("æ— æ³•æ‰“å¼€é¢˜åº“æ–‡ä»¶");
                 break;
             }
             {
@@ -2018,23 +2091,23 @@ void manageSingleWordLibrary() {
                     }
                 }
                 if (count == 0) {
-                    printf("Ìâ¿âÎª¿Õ¡£\n");
+                    printf("é¢˜åº“ä¸ºç©ºã€‚\n");
                 }
             }
             fclose(file);
             break;
         case 2:
-            // Ìí¼ÓĞÂµ¥´Ê
+            // æ·»åŠ æ–°å•è¯
             {
                 char english[50], chinese[100];
-                printf("\nÇëÊäÈëÓ¢ÎÄµ¥´Ê: ");
+                printf("\nè¯·è¾“å…¥è‹±æ–‡å•è¯: ");
                 fgets(english, sizeof(english), stdin);
                 trimNewline(english);
-                printf("ÇëÊäÈëÖĞÎÄÒâË¼: ");
+                printf("è¯·è¾“å…¥ä¸­æ–‡æ„æ€: ");
                 fgets(chinese, sizeof(chinese), stdin);
                 trimNewline(chinese);
 
-                // ¼ì²éÊÇ·ñÒÑ´æÔÚ
+                // æ£€æŸ¥æ˜¯å¦å·²å­˜åœ¨
                 file = fopen(filepath, "r");
                 if (file != NULL) {
                     char line[256];
@@ -2050,38 +2123,38 @@ void manageSingleWordLibrary() {
                     }
                     fclose(file);
                     if (exists) {
-                        printf("µ¥´Ê '%s' ÒÑ´æÔÚÓÚÌâ¿âÖĞ¡£\n", english);
+                        printf("å•è¯ '%s' å·²å­˜åœ¨äºé¢˜åº“ä¸­ã€‚\n", english);
                         break;
                     }
                 }
 
-                // ×·¼ÓĞÂµ¥´Ê
+                // è¿½åŠ æ–°å•è¯
                 file = fopen(filepath, "a");
                 if (file == NULL) {
-                    perror("ÎŞ·¨´ò¿ªÌâ¿âÎÄ¼ş½øĞĞĞ´Èë");
+                    perror("æ— æ³•æ‰“å¼€é¢˜åº“æ–‡ä»¶è¿›è¡Œå†™å…¥");
                     break;
                 }
                 fprintf(file, "%s %s\n", english, chinese);
                 fclose(file);
-                printf("µ¥´Ê '%s' Ìí¼Ó³É¹¦¡£\n", english);
+                printf("å•è¯ '%s' æ·»åŠ æˆåŠŸã€‚\n", english);
             }
             break;
         case 3:
-            // É¾³ıµ¥´Ê
+            // åˆ é™¤å•è¯
             {
                 char english[50];
-                printf("\nÇëÊäÈëÒªÉ¾³ıµÄÓ¢ÎÄµ¥´Ê: ");
+                printf("\nè¯·è¾“å…¥è¦åˆ é™¤çš„è‹±æ–‡å•è¯: ");
                 fgets(english, sizeof(english), stdin);
                 trimNewline(english);
 
-                // ¶ÁÈ¡ËùÓĞµ¥´Ê²¢ÖØĞ´ÎÄ¼ş£¬ÅÅ³ıÒªÉ¾³ıµÄµ¥´Ê
+                // è¯»å–æ‰€æœ‰å•è¯å¹¶é‡å†™æ–‡ä»¶ï¼Œæ’é™¤è¦åˆ é™¤çš„å•è¯
                 FILE *readFile = fopen(filepath, "r");
                 if (readFile == NULL) {
-                    perror("ÎŞ·¨´ò¿ªÌâ¿âÎÄ¼ş");
+                    perror("æ— æ³•æ‰“å¼€é¢˜åº“æ–‡ä»¶");
                     break;
                 }
 
-                // ÁÙÊ±ÎÄ¼ş
+                // ä¸´æ—¶æ–‡ä»¶
                 char tempPath[160];
 #ifdef _WIN32
                 snprintf(tempPath, sizeof(tempPath), "word_libraries\\temp_%s", libraryName);
@@ -2090,7 +2163,7 @@ void manageSingleWordLibrary() {
 #endif
                 FILE *tempFile = fopen(tempPath, "w");
                 if (tempFile == NULL) {
-                    perror("ÎŞ·¨´´½¨ÁÙÊ±ÎÄ¼ş");
+                    perror("æ— æ³•åˆ›å»ºä¸´æ—¶æ–‡ä»¶");
                     fclose(readFile);
                     break;
                 }
@@ -2104,7 +2177,7 @@ void manageSingleWordLibrary() {
                     char *existingChinese = strtok(NULL, "");
                     if (existingEnglish && strcmp(existingEnglish, english) == 0) {
                         found = 1;
-                        continue; // Ìø¹ıÒªÉ¾³ıµÄµ¥´Ê
+                        continue; // è·³è¿‡è¦åˆ é™¤çš„å•è¯
                     }
                     fprintf(tempFile, "%s %s\n", existingEnglish, existingChinese ? existingChinese : "");
                 }
@@ -2113,28 +2186,28 @@ void manageSingleWordLibrary() {
                 fclose(tempFile);
 
                 if (found) {
-                    // Ìæ»»Ô­ÎÄ¼ş
+                    // æ›¿æ¢åŸæ–‡ä»¶
                     if (remove(filepath) != 0) {
-                        perror("ÎŞ·¨É¾³ıÔ­Ìâ¿âÎÄ¼ş");
+                        perror("æ— æ³•åˆ é™¤åŸé¢˜åº“æ–‡ä»¶");
                         remove(tempPath);
                         break;
                     }
                     if (rename(tempPath, filepath) != 0) {
-                        perror("ÎŞ·¨ÖØÃüÃûÁÙÊ±ÎÄ¼ş");
+                        perror("æ— æ³•é‡å‘½åä¸´æ—¶æ–‡ä»¶");
                         break;
                     }
-                    printf("µ¥´Ê '%s' É¾³ı³É¹¦¡£\n", english);
+                    printf("å•è¯ '%s' åˆ é™¤æˆåŠŸã€‚\n", english);
                 } else {
-                    printf("Î´ÕÒµ½µ¥´Ê '%s'¡£\n", english);
+                    printf("æœªæ‰¾åˆ°å•è¯ '%s'ã€‚\n", english);
                     remove(tempPath);
                 }
             }
             break;
         case 4:
-            // ·µ»ØÌâ¿â¹ÜÀí²Ëµ¥
+            // è¿”å›é¢˜åº“ç®¡ç†èœå•
             return;
         default:
-            printf("ÎŞĞ§µÄÑ¡Ôñ£¬ÇëÖØĞÂÊäÈë¡£\n");
+            printf("æ— æ•ˆçš„é€‰æ‹©ï¼Œè¯·é‡æ–°è¾“å…¥ã€‚\n");
         }
     }
 }
